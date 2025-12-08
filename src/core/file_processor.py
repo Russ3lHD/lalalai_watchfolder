@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any
 from queue import Queue, Empty
 from datetime import datetime
 
-from api_client import LalalAIClient
+from ..api import LalalAIClient
 
 class FileProcessor:
     """Processes audio files using Lalal AI API"""

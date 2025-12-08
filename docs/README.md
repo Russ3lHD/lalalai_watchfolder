@@ -119,22 +119,43 @@ Audio File Input → File Validation → Lalal AI Upload → AI Processing → D
 
 ```
 lalalai_watchfolder/
+├── src/                     # Main source code (organized by function)
+│   ├── api/                 # API client module
+│   │   └── api_client.py    # Lalal AI API integration client
+│   ├── config/              # Configuration management
+│   │   └── config_manager.py # Configuration management with encryption
+│   ├── core/                # Core application logic
+│   │   ├── file_processor.py # Audio file processing logic
+│   │   └── folder_watcher.py # Folder monitoring functionality
+│   ├── monitoring/          # Monitoring and health checks
+│   │   ├── health_monitor.py # System health monitoring
+│   │   └── resource_monitor.py # Resource usage tracking
+│   └── utils/               # Utility functions and helpers
+│       ├── exceptions.py     # Custom exception classes
+│       ├── file_validator.py # File validation utilities
+│       ├── retry_mechanisms.py # Circuit breaker and retry logic
+│       ├── shutdown_manager.py # Graceful shutdown handling
+│       └── graceful_shutdown.py # Shutdown coordination
+├── docs/                    # Documentation
+│   ├── README.md            # This file
+│   ├── PROJECT_STRUCTURE.md # Detailed structure guide
+│   ├── FILES_INDEX.md       # File structure reference
+│   ├── IMPLEMENTATION_SUMMARY.md # Implementation overview
+│   ├── QUICK_REFERENCE.md   # Quick start guide
+│   ├── STABILITY_IMPROVEMENTS.md # Stability features
+│   ├── TESTING_REPORT.md    # Testing documentation
+│   └── FINAL_STATUS.md      # Project status
+├── test/                    # Test modules
+│   ├── run_all_tests.py     # Test runner
+│   ├── test_integration.py  # Integration tests
+│   └── test_stability_improvements.py # Stability tests
 ├── main.py                  # Main desktop application (API mode)
 ├── launcher.py              # Application launcher with mode selection
-├── api_client.py            # Lalal AI API integration client
-├── config_manager.py        # Configuration management with AES encryption
-├── file_processor.py        # Audio file processing logic
-├── folder_watcher.py        # Folder monitoring functionality
-├── test_components.py       # Component testing suite
-├── validate_license.py      # License validation utility
 ├── setup.py                 # Installation and setup script
 ├── requirements.txt         # Python dependencies
 ├── run.bat                  # Windows launch script
 ├── run.sh                   # Unix/Linux launch script
-├── README.md               # This file
-├── COMPLETE_GUIDE.md       # Comprehensive documentation
-├── logs/                   # Application logs directory
-└── test_audio/             # Sample audio files for testing
+└── build.spec               # PyInstaller configuration
 ```
 
 ## Dependencies

@@ -8,20 +8,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from api_client import LalalAIClient
-from config_manager import ConfigManager
-from folder_watcher import FolderWatcher
-from file_processor import FileProcessor
-from shutdown_manager import ShutdownManager, ThreadManager
-from resource_monitor import ResourceManager
-from graceful_shutdown import SafeShutdownCoordinator, OperationStatus
-from exceptions import (
+from src.api import LalalAIClient
+from src.config import ConfigManager
+from src.core import FolderWatcher, FileProcessor
+from src.utils import (
+    ShutdownManager, ThreadManager, SafeShutdownCoordinator, OperationStatus,
     LalalAICleanerError, APIError, APIAuthenticationError, APITimeoutError,
-    APIRateLimitError, APIServiceUnavailableError, FileProcessingError
+    APIRateLimitError, APIServiceUnavailableError, FileProcessingError,
+    CircuitBreaker, RetryPolicy, APIClientWrapper, HealthChecker,
+    FileValidator
 )
-from retry_mechanisms import CircuitBreaker, RetryPolicy, APIClientWrapper, HealthChecker
-from file_validator import FileValidator
-from health_monitor import HealthMonitor
+from src.monitoring import HealthMonitor, ResourceManager
 
 class LalalAIVoiceCleanerApp:
     def __init__(self, root):

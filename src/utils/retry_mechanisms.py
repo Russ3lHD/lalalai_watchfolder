@@ -9,7 +9,7 @@ import threading
 from typing import Callable, Any, Optional, Dict, List
 from functools import wraps
 from enum import Enum
-from exceptions import (
+from .exceptions import (
     APITimeoutError, APIRateLimitError, APIServiceUnavailableError,
     APIAuthenticationError, APIError
 )

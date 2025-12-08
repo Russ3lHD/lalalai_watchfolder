@@ -4,30 +4,27 @@ Comprehensive test suite for stability improvements
 Tests all new stability components and integration
 """
 
-import os
 import sys
 import time
 import tempfile
 import shutil
-import threading
-import json
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 import logging
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import all stability components
-from exceptions import (
+from src.utils.exceptions import (
     LalalAICleanerError, APIError, FileProcessingError, 
     ConfigurationError, APIAuthenticationError, APITimeoutError,
     APIServiceUnavailableError, FileNotFoundError, FileFormatError, FileSizeError
 )
-from retry_mechanisms import RetryPolicy, CircuitBreaker, APIClientWrapper, HealthChecker
-from file_validator import FileValidator, AtomicFileOperation
-from health_monitor import HealthMonitor, SystemHealth, HealthMetric
-from enhanced_config_manager import EnhancedConfigManager, ConfigSchema
+from src.utils.retry_mechanisms import RetryPolicy, CircuitBreaker, APIClientWrapper, HealthChecker
+from src.utils.file_validator import FileValidator, AtomicFileOperation
+from src.monitoring.health_monitor import HealthMonitor, SystemHealth, HealthMetric
+from src.config.enhanced_config_manager import EnhancedConfigManager, ConfigSchema
 
 
 class StabilityTestSuite:
@@ -175,6 +172,7 @@ class StabilityTestSuite:
         validator = FileValidator()
         
         # Create test file
+        assert self.test_dir is not None, "Test directory not initialized"
         test_file = self.test_dir / "test.txt"
         test_file.write_text("test content")
         
@@ -199,6 +197,7 @@ class StabilityTestSuite:
         atomic_ops = AtomicFileOperation()
         
         # Test atomic write
+        assert self.test_dir is not None, "Test directory not initialized"
         test_file = self.test_dir / "atomic_test.txt"
         data = b"test data for atomic operation"
         
@@ -252,6 +251,7 @@ class StabilityTestSuite:
     
     def test_enhanced_config_manager(self):
         """Test enhanced configuration manager"""
+        assert self.test_dir is not None, "Test directory not initialized"
         config_dir = self.test_dir / "config_test"
         config_manager = EnhancedConfigManager(config_dir)
         
@@ -290,6 +290,7 @@ class StabilityTestSuite:
     
     def test_integration_health_monitor_config(self):
         """Test integration between health monitor and config manager"""
+        assert self.test_dir is not None, "Test directory not initialized"
         config_dir = self.test_dir / "integration_test"
         config_manager = EnhancedConfigManager(config_dir)
         
@@ -304,6 +305,7 @@ class StabilityTestSuite:
         
         # Load config and use in health monitor
         loaded_config = config_manager.load_config()
+        assert loaded_config is not None, "Failed to load configuration"
         health_monitor = HealthMonitor({
             'monitoring_interval': loaded_config.get('health_check_interval', 30)
         })
@@ -342,6 +344,7 @@ class StabilityTestSuite:
         validator = FileValidator()
         
         # Create multiple test files
+        assert self.test_dir is not None, "Test directory not initialized"
         test_files = []
         for i in range(10):
             test_file = self.test_dir / f"test_{i}.txt"
@@ -364,6 +367,7 @@ class StabilityTestSuite:
     
     def test_configuration_migration(self):
         """Test configuration migration scenarios"""
+        assert self.test_dir is not None, "Test directory not initialized"
         config_dir = self.test_dir / "migration_test"
         config_manager = EnhancedConfigManager(config_dir)
         

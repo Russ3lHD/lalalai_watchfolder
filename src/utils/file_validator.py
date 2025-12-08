@@ -9,7 +9,7 @@ import mimetypes
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Set
-from exceptions import (
+from .exceptions import (
     FileNotFoundError, FileFormatError, FileCorruptedError, 
     FileSizeError, FileProcessingError
 )
