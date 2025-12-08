@@ -4,9 +4,11 @@ import threading
 import logging
 import os
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
+import sv_ttk
 
 from src.api import LalalAIClient
 from src.config import ConfigManager
@@ -26,6 +28,30 @@ class LalalAIVoiceCleanerApp:
         self.root.title("Lalal AI Voice Cleaner")
         self.root.geometry("800x600")
         self.root.minsize(700, 500)
+        
+        # Configure window appearance for dark theme consistency
+        self.root.configure(bg='#2b2b2b')  # Dark background color
+        self.root.resizable(True, True)
+        
+        # Set window icon if available (optional - you can add an icon file)
+        try:
+            # You can add an icon by uncommenting and providing a valid icon path
+            # self.root.iconbitmap('assets/icon.ico')  
+            pass
+        except:
+            pass
+        
+        # Configure window border and styling hints for better dark theme integration
+        self.root.attributes('-alpha', 1.0)  # Full opacity
+        self.root.attributes('-topmost', False)  # Normal window stacking
+        
+        # Additional dark theme window styling (cross-platform)
+        try:
+            # Configure window transparency and border (Windows-specific)
+            if sys.platform.startswith('win'):
+                self.root.attributes('-toolwindow', False)  # Normal window style
+        except:
+            pass
         
         # Initialize shutdown management
         self.shutdown_manager = ShutdownManager()
@@ -65,6 +91,9 @@ class LalalAIVoiceCleanerApp:
         
         # Initialize application
         self.initialize_app()
+        
+        # Set up Sun Valley TTK theme
+        sv_ttk.set_theme("dark")  # You can use "light" or "dark"
         
         # Handle window close event
         self.root.protocol("WM_DELETE_WINDOW", self._on_window_close)
@@ -405,16 +434,55 @@ class LalalAIVoiceCleanerApp:
         """Show settings dialog"""
         settings_window = tk.Toplevel(self.root)
         settings_window.title("Settings")
-        settings_window.geometry("600x700")
+        settings_window.geometry("500x800")
         settings_window.transient(self.root)
         settings_window.grab_set()
         
+        # Create main container with scrollbar
+        main_container = ttk.Frame(settings_window)
+        main_container.pack(fill=tk.BOTH, expand=True)
+        
+        # Create canvas and scrollbar
+        canvas = tk.Canvas(main_container)
+        scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Bind mouse wheel scrolling
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        def _bind_to_mousewheel(event):
+            canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
+        def _unbind_from_mousewheel(event):
+            canvas.unbind_all("<MouseWheel>")
+        
+        canvas.bind("<Enter>", _bind_to_mousewheel)
+        canvas.bind("<Leave>", _unbind_from_mousewheel)
+        
+        # Pack canvas and scrollbar
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
         # Settings content
-        ttk.Label(settings_window, text="Application Settings", font=("Arial", 12, "bold")).pack(pady=10)
+        ttk.Label(scrollable_frame, text="Application Settings", font=("Arial", 12, "bold")).pack(pady=10)
         
         # Add settings controls here
-        settings_frame = ttk.Frame(settings_window, padding="20")
+        settings_frame = ttk.Frame(scrollable_frame, padding="20")
         settings_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Initialize widget lists for conditional display
+        self.voice_cleanup_widgets = []
+        self.voice_converter_widgets = []
+        self.general_widgets = []
         
         # Processing Mode Selection
         ttk.Label(settings_frame, text="Processing Mode:", font=("Arial", 10, "bold")).grid(row=0, column=0, sticky=tk.W, pady=(0, 10))
@@ -423,95 +491,247 @@ class LalalAIVoiceCleanerApp:
         mode_combo['values'] = ('voice_cleanup', 'voice_converter')
         mode_combo.grid(row=1, column=0, sticky=tk.W, pady=(0, 20))
         
+        # Bind mode change event
+        mode_combo.bind('<<ComboboxSelected>>', self.on_processing_mode_change)
+        
         # Voice Cleanup Settings
-        ttk.Label(settings_frame, text="Voice Cleanup Options", font=("Arial", 10, "bold")).grid(row=2, column=0, sticky=tk.W, pady=(0, 10))
+        voice_cleanup_label = ttk.Label(settings_frame, text="Voice Cleanup Options", font=("Arial", 10, "bold"))
+        voice_cleanup_label.grid(row=2, column=0, sticky=tk.W, pady=(0, 10))
+        self.voice_cleanup_widgets.append(voice_cleanup_label)
         
         # Enhanced Processing
         self.enhanced_processing_var = tk.BooleanVar(value=self.config_manager.get('enhanced_processing', True))
-        ttk.Checkbutton(settings_frame, text="Enhanced Processing", 
-                       variable=self.enhanced_processing_var).grid(row=3, column=0, sticky=tk.W, pady=2)
+        enhanced_processing_check = ttk.Checkbutton(settings_frame, text="Enhanced Processing", 
+                       variable=self.enhanced_processing_var)
+        enhanced_processing_check.grid(row=3, column=0, sticky=tk.W, pady=2)
+        self.voice_cleanup_widgets.append(enhanced_processing_check)
         
         # Noise Cancelling Level
-        ttk.Label(settings_frame, text="Noise Cancelling Level:").grid(row=4, column=0, sticky=tk.W, pady=(10, 5))
+        noise_label = ttk.Label(settings_frame, text="Noise Cancelling Level:")
+        noise_label.grid(row=4, column=0, sticky=tk.W, pady=(10, 5))
+        self.voice_cleanup_widgets.append(noise_label)
+        
         self.noise_cancelling_var = tk.IntVar(value=self.config_manager.get('noise_cancelling', 1))
         noise_frame = ttk.Frame(settings_frame)
         noise_frame.grid(row=5, column=0, sticky=tk.W, pady=(0, 10))
-        ttk.Radiobutton(noise_frame, text="Mild (0)", variable=self.noise_cancelling_var, value=0).pack(side=tk.LEFT)
-        ttk.Radiobutton(noise_frame, text="Normal (1)", variable=self.noise_cancelling_var, value=1).pack(side=tk.LEFT)
-        ttk.Radiobutton(noise_frame, text="Aggressive (2)", variable=self.noise_cancelling_var, value=2).pack(side=tk.LEFT)
+        
+        noise_radio1 = ttk.Radiobutton(noise_frame, text="Mild (0)", variable=self.noise_cancelling_var, value=0)
+        noise_radio1.pack(side=tk.LEFT)
+        noise_radio2 = ttk.Radiobutton(noise_frame, text="Normal (1)", variable=self.noise_cancelling_var, value=1)
+        noise_radio2.pack(side=tk.LEFT)
+        noise_radio3 = ttk.Radiobutton(noise_frame, text="Aggressive (2)", variable=self.noise_cancelling_var, value=2)
+        noise_radio3.pack(side=tk.LEFT)
+        
+        self.voice_cleanup_widgets.extend([noise_frame, noise_radio1, noise_radio2, noise_radio3])
         
         # Dereverb
         self.dereverb_var = tk.BooleanVar(value=self.config_manager.get('dereverb', True))
-        ttk.Checkbutton(settings_frame, text="Dereverb (Remove Echo)", 
-                       variable=self.dereverb_var).grid(row=6, column=0, sticky=tk.W, pady=2)
+        dereverb_check = ttk.Checkbutton(settings_frame, text="Dereverb (Remove Echo)", 
+                       variable=self.dereverb_var)
+        dereverb_check.grid(row=6, column=0, sticky=tk.W, pady=2)
+        self.voice_cleanup_widgets.append(dereverb_check)
         
         # Stem Selection
-        ttk.Label(settings_frame, text="Stem to Extract:").grid(row=7, column=0, sticky=tk.W, pady=(10, 5))
+        stem_label = ttk.Label(settings_frame, text="Stem to Extract:")
+        stem_label.grid(row=7, column=0, sticky=tk.W, pady=(10, 5))
+        self.voice_cleanup_widgets.append(stem_label)
+        
         self.stem_var = tk.StringVar(value=self.config_manager.get('stem', 'voice'))
         stem_combo = ttk.Combobox(settings_frame, textvariable=self.stem_var, state="readonly", width=20)
         stem_combo['values'] = ('vocals', 'voice', 'drum', 'bass', 'piano', 'electric_guitar', 
                                'acoustic_guitar', 'synthesizer', 'strings', 'wind')
         stem_combo.grid(row=8, column=0, sticky=tk.W, pady=(0, 10))
+        self.voice_cleanup_widgets.append(stem_combo)
         
         # Splitter Selection
-        ttk.Label(settings_frame, text="Neural Network:").grid(row=9, column=0, sticky=tk.W, pady=(10, 5))
+        splitter_label = ttk.Label(settings_frame, text="Neural Network:")
+        splitter_label.grid(row=9, column=0, sticky=tk.W, pady=(10, 5))
+        self.voice_cleanup_widgets.append(splitter_label)
+        
         self.splitter_var = tk.StringVar(value=self.config_manager.get('splitter', 'perseus'))
         splitter_combo = ttk.Combobox(settings_frame, textvariable=self.splitter_var, state="readonly", width=20)
         splitter_combo['values'] = ('auto', 'phoenix', 'orion', 'perseus')
         splitter_combo.grid(row=10, column=0, sticky=tk.W, pady=(0, 10))
+        self.voice_cleanup_widgets.append(splitter_combo)
         
         # Post-processing Filter
-        ttk.Label(settings_frame, text="Filter Intensity:").grid(row=11, column=0, sticky=tk.W, pady=(10, 5))
+        filter_label = ttk.Label(settings_frame, text="Filter Intensity:")
+        filter_label.grid(row=11, column=0, sticky=tk.W, pady=(10, 5))
+        self.voice_cleanup_widgets.append(filter_label)
+        
         self.filter_var = tk.IntVar(value=self.config_manager.get('filter', 1))
         filter_frame = ttk.Frame(settings_frame)
         filter_frame.grid(row=12, column=0, sticky=tk.W, pady=(0, 10))
-        ttk.Radiobutton(filter_frame, text="Mild (0)", variable=self.filter_var, value=0).pack(side=tk.LEFT)
-        ttk.Radiobutton(filter_frame, text="Normal (1)", variable=self.filter_var, value=1).pack(side=tk.LEFT)
-        ttk.Radiobutton(filter_frame, text="Aggressive (2)", variable=self.filter_var, value=2).pack(side=tk.LEFT)
+        
+        filter_radio1 = ttk.Radiobutton(filter_frame, text="Mild (0)", variable=self.filter_var, value=0)
+        filter_radio1.pack(side=tk.LEFT)
+        filter_radio2 = ttk.Radiobutton(filter_frame, text="Normal (1)", variable=self.filter_var, value=1)
+        filter_radio2.pack(side=tk.LEFT)
+        filter_radio3 = ttk.Radiobutton(filter_frame, text="Aggressive (2)", variable=self.filter_var, value=2)
+        filter_radio3.pack(side=tk.LEFT)
+        
+        self.voice_cleanup_widgets.extend([filter_frame, filter_radio1, filter_radio2, filter_radio3])
         
         # Voice Converter Settings
-        ttk.Label(settings_frame, text="Voice Converter Options", font=("Arial", 10, "bold")).grid(row=13, column=0, sticky=tk.W, pady=(20, 10))
+        voice_converter_label = ttk.Label(settings_frame, text="Voice Converter Options", font=("Arial", 10, "bold"))
+        voice_converter_label.grid(row=13, column=0, sticky=tk.W, pady=(20, 10))
+        self.voice_converter_widgets.append(voice_converter_label)
         
         # Voice Pack Selection
-        ttk.Label(settings_frame, text="Voice Pack:").grid(row=14, column=0, sticky=tk.W, pady=(10, 5))
+        voice_pack_label = ttk.Label(settings_frame, text="Voice Pack:")
+        voice_pack_label.grid(row=14, column=0, sticky=tk.W, pady=(10, 5))
+        self.voice_converter_widgets.append(voice_pack_label)
+        
         self.voice_pack_var = tk.StringVar(value=self.config_manager.get('voice_pack_id', 'ALEX_KAYE'))
         voice_pack_combo = ttk.Combobox(settings_frame, textvariable=self.voice_pack_var, state="readonly", width=20)
         voice_pack_combo['values'] = ('ALEX_KAYE', 'JENNIFER', 'DAVID', 'SARAH', 'MICHAEL')  # Common voice packs
         voice_pack_combo.grid(row=15, column=0, sticky=tk.W, pady=(0, 10))
+        self.voice_converter_widgets.append(voice_pack_combo)
         
         # Accent Enhance
-        ttk.Label(settings_frame, text="Accent Enhance:").grid(row=16, column=0, sticky=tk.W, pady=(10, 5))
+        accent_label = ttk.Label(settings_frame, text="Accent Enhance:")
+        accent_label.grid(row=16, column=0, sticky=tk.W, pady=(10, 5))
+        self.voice_converter_widgets.append(accent_label)
+        
         self.accent_enhance_var = tk.DoubleVar(value=self.config_manager.get('accent_enhance', 1.0))
         accent_scale = ttk.Scale(settings_frame, from_=0.5, to=2.0, variable=self.accent_enhance_var, orient=tk.HORIZONTAL)
         accent_scale.grid(row=17, column=0, sticky=tk.W+tk.E, pady=(0, 5))
-        ttk.Label(settings_frame, textvariable=self.accent_enhance_var).grid(row=18, column=0, sticky=tk.W, pady=(0, 10))
+        self.voice_converter_widgets.append(accent_scale)
+        
+        accent_value_label = ttk.Label(settings_frame, textvariable=self.accent_enhance_var)
+        accent_value_label.grid(row=18, column=0, sticky=tk.W, pady=(0, 10))
+        self.voice_converter_widgets.append(accent_value_label)
         
         # Pitch Shifting
         self.pitch_shifting_var = tk.BooleanVar(value=self.config_manager.get('pitch_shifting', True))
-        ttk.Checkbutton(settings_frame, text="Pitch Shifting", 
-                       variable=self.pitch_shifting_var).grid(row=19, column=0, sticky=tk.W, pady=2)
+        pitch_check = ttk.Checkbutton(settings_frame, text="Pitch Shifting", 
+                       variable=self.pitch_shifting_var)
+        pitch_check.grid(row=19, column=0, sticky=tk.W, pady=2)
+        self.voice_converter_widgets.append(pitch_check)
         
         # Dereverb for Voice Conversion
         self.dereverb_enabled_var = tk.BooleanVar(value=self.config_manager.get('dereverb_enabled', False))
-        ttk.Checkbutton(settings_frame, text="Dereverb (Voice Conversion)", 
-                       variable=self.dereverb_enabled_var).grid(row=20, column=0, sticky=tk.W, pady=2)
+        dereverb_conv_check = ttk.Checkbutton(settings_frame, text="Dereverb (Voice Conversion)", 
+                       variable=self.dereverb_enabled_var)
+        dereverb_conv_check.grid(row=20, column=0, sticky=tk.W, pady=2)
+        self.voice_converter_widgets.append(dereverb_conv_check)
         
         # General Settings
-        ttk.Label(settings_frame, text="General Settings", font=("Arial", 10, "bold")).grid(row=21, column=0, sticky=tk.W, pady=(20, 10))
+        general_label = ttk.Label(settings_frame, text="General Settings", font=("Arial", 10, "bold"))
+        general_label.grid(row=21, column=0, sticky=tk.W, pady=(20, 10))
+        self.general_widgets.append(general_label)
         
         # Auto-start option
         self.auto_start_var = tk.BooleanVar(value=self.config_manager.get('auto_start', False))
-        ttk.Checkbutton(settings_frame, text="Auto-start watching on launch", 
-                       variable=self.auto_start_var).grid(row=22, column=0, sticky=tk.W, pady=2)
+        auto_start_check = ttk.Checkbutton(settings_frame, text="Auto-start watching on launch", 
+                       variable=self.auto_start_var)
+        auto_start_check.grid(row=22, column=0, sticky=tk.W, pady=2)
+        self.general_widgets.append(auto_start_check)
         
         # Processed folder option
         self.create_processed_folder_var = tk.BooleanVar(value=self.config_manager.get('create_processed_folder', True))
-        ttk.Checkbutton(settings_frame, text="Create processed subfolder", 
-                       variable=self.create_processed_folder_var).grid(row=23, column=0, sticky=tk.W, pady=2)
+        processed_folder_check = ttk.Checkbutton(settings_frame, text="Create processed subfolder", 
+                       variable=self.create_processed_folder_var)
+        processed_folder_check.grid(row=23, column=0, sticky=tk.W, pady=2)
+        self.general_widgets.append(processed_folder_check)
+        
+        # Performance Settings
+        performance_label = ttk.Label(settings_frame, text="Performance Settings", font=("Arial", 10, "bold"))
+        performance_label.grid(row=24, column=0, sticky=tk.W, pady=(20, 10))
+        self.general_widgets.append(performance_label)
+        
+        # Max Queue Size
+        max_queue_label = ttk.Label(settings_frame, text="Max Queue Size:")
+        max_queue_label.grid(row=25, column=0, sticky=tk.W, pady=(10, 5))
+        self.general_widgets.append(max_queue_label)
+        
+        self.max_queue_size_var = tk.IntVar(value=self.config_manager.get('max_queue_size', 100))
+        max_queue_frame = ttk.Frame(settings_frame)
+        max_queue_frame.grid(row=26, column=0, sticky=tk.W, pady=(0, 10))
+        max_queue_spin = ttk.Spinbox(max_queue_frame, from_=1, to=1000, textvariable=self.max_queue_size_var, width=10)
+        max_queue_spin.pack(side=tk.LEFT)
+        max_queue_range_label = ttk.Label(max_queue_frame, text="(1-1000)", font=("Arial", 8))
+        max_queue_range_label.pack(side=tk.LEFT, padx=(5, 0))
+        
+        self.general_widgets.extend([max_queue_frame, max_queue_spin, max_queue_range_label])
+        
+        # Retry Attempts
+        retry_label = ttk.Label(settings_frame, text="Retry Attempts:")
+        retry_label.grid(row=27, column=0, sticky=tk.W, pady=(10, 5))
+        self.general_widgets.append(retry_label)
+        
+        self.retry_attempts_var = tk.IntVar(value=self.config_manager.get('retry_attempts', 3))
+        retry_frame = ttk.Frame(settings_frame)
+        retry_frame.grid(row=28, column=0, sticky=tk.W, pady=(0, 10))
+        retry_spin = ttk.Spinbox(retry_frame, from_=1, to=10, textvariable=self.retry_attempts_var, width=10)
+        retry_spin.pack(side=tk.LEFT)
+        retry_range_label = ttk.Label(retry_frame, text="(1-10)", font=("Arial", 8))
+        retry_range_label.pack(side=tk.LEFT, padx=(5, 0))
+        
+        self.general_widgets.extend([retry_frame, retry_spin, retry_range_label])
+        
+        # Timeout Seconds
+        timeout_label = ttk.Label(settings_frame, text="Timeout (seconds):")
+        timeout_label.grid(row=29, column=0, sticky=tk.W, pady=(10, 5))
+        self.general_widgets.append(timeout_label)
+        
+        self.timeout_seconds_var = tk.IntVar(value=self.config_manager.get('timeout_seconds', 300))
+        timeout_frame = ttk.Frame(settings_frame)
+        timeout_frame.grid(row=30, column=0, sticky=tk.W, pady=(0, 10))
+        timeout_spin = ttk.Spinbox(timeout_frame, from_=30, to=3600, increment=30, textvariable=self.timeout_seconds_var, width=10)
+        timeout_spin.pack(side=tk.LEFT)
+        timeout_range_label = ttk.Label(timeout_frame, text="(30-3600)", font=("Arial", 8))
+        timeout_range_label.pack(side=tk.LEFT, padx=(5, 0))
+        
+        self.general_widgets.extend([timeout_frame, timeout_spin, timeout_range_label])
+        
+        # Health Check Interval
+        health_label = ttk.Label(settings_frame, text="Health Check Interval:")
+        health_label.grid(row=31, column=0, sticky=tk.W, pady=(10, 5))
+        self.general_widgets.append(health_label)
+        
+        self.health_check_interval_var = tk.IntVar(value=self.config_manager.get('health_check_interval', 30))
+        health_frame = ttk.Frame(settings_frame)
+        health_frame.grid(row=32, column=0, sticky=tk.W, pady=(0, 10))
+        health_spin = ttk.Spinbox(health_frame, from_=5, to=300, increment=5, textvariable=self.health_check_interval_var, width=10)
+        health_spin.pack(side=tk.LEFT)
+        health_range_label = ttk.Label(health_frame, text="seconds (5-300)", font=("Arial", 8))
+        health_range_label.pack(side=tk.LEFT, padx=(5, 0))
+        
+        self.general_widgets.extend([health_frame, health_spin, health_range_label])
         
         # Save button
-        ttk.Button(settings_frame, text="Save Settings", 
-                  command=lambda: self.save_settings(settings_window)).grid(row=24, column=0, pady=20)
+        save_button = ttk.Button(settings_frame, text="Save Settings", 
+                  command=lambda: self.save_settings(settings_window))
+        save_button.grid(row=33, column=0, pady=20)
+        self.general_widgets.append(save_button)
+        
+        # Initialize mode-specific visibility
+        self.on_processing_mode_change()
+    
+    def on_processing_mode_change(self, event=None):
+        """Handle processing mode change to show/hide relevant settings"""
+        mode = self.processing_mode_var.get()
+        
+        if mode == 'voice_cleanup':
+            # Show voice cleanup settings, hide voice converter settings
+            self._show_widgets(self.voice_cleanup_widgets, True)
+            self._show_widgets(self.voice_converter_widgets, False)
+        else:  # voice_converter
+            # Show voice converter settings, hide voice cleanup settings
+            self._show_widgets(self.voice_cleanup_widgets, False)
+            self._show_widgets(self.voice_converter_widgets, True)
+    
+    def _show_widgets(self, widgets, show):
+        """Show or hide a list of widgets"""
+        for widget in widgets:
+            if show:
+                widget.grid()
+            else:
+                widget.grid_remove()
+        
+        # Also update the canvas scrollregion after showing/hiding widgets
+        self.root.update_idletasks()
     
     def save_settings(self, window):
         """Save settings and close dialog"""
@@ -528,7 +748,11 @@ class LalalAIVoiceCleanerApp:
             'voice_pack_id': self.voice_pack_var.get(),
             'accent_enhance': self.accent_enhance_var.get(),
             'pitch_shifting': self.pitch_shifting_var.get(),
-            'dereverb_enabled': self.dereverb_enabled_var.get()
+            'dereverb_enabled': self.dereverb_enabled_var.get(),
+            'max_queue_size': self.max_queue_size_var.get(),
+            'retry_attempts': self.retry_attempts_var.get(),
+            'timeout_seconds': self.timeout_seconds_var.get(),
+            'health_check_interval': self.health_check_interval_var.get()
         }
         self.config_manager.save_config(settings)
         window.destroy()
@@ -559,19 +783,19 @@ class LalalAIVoiceCleanerApp:
     
     def show_about(self):
         """Show about dialog"""
-        about_text = """Lalal AI Voice Cleaner
+        about_text = """Lalal AI Watchfolder
 
 Version 1.0.0
 
 A desktop application for automatic voice cleanup using Lalal AI API.
 
 Features:
-• Automatic voice isolation from background music
+• Automatic voice isolation from background audio
 • Folder monitoring and batch processing
 • Secure credential storage
 • Comprehensive logging
 
-© 2024 Lalal AI Voice Cleaner"""
+2025 Lalal AI Watchfolder"""
         
         messagebox.showinfo("About", about_text)
     
