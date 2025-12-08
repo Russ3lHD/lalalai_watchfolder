@@ -12,6 +12,16 @@ from api_client import LalalAIClient
 from config_manager import ConfigManager
 from folder_watcher import FolderWatcher
 from file_processor import FileProcessor
+from shutdown_manager import ShutdownManager, ThreadManager
+from resource_monitor import ResourceManager
+from graceful_shutdown import SafeShutdownCoordinator, OperationStatus
+from exceptions import (
+    LalalAICleanerError, APIError, APIAuthenticationError, APITimeoutError,
+    APIRateLimitError, APIServiceUnavailableError, FileProcessingError
+)
+from retry_mechanisms import CircuitBreaker, RetryPolicy, APIClientWrapper, HealthChecker
+from file_validator import FileValidator
+from health_monitor import HealthMonitor
 
 class LalalAIVoiceCleanerApp:
     def __init__(self, root):
@@ -19,6 +29,21 @@ class LalalAIVoiceCleanerApp:
         self.root.title("Lalal AI Voice Cleaner")
         self.root.geometry("800x600")
         self.root.minsize(700, 500)
+        
+        # Initialize shutdown management
+        self.shutdown_manager = ShutdownManager()
+        self.thread_manager = ThreadManager(self.shutdown_manager)
+        self.resource_manager = ResourceManager(self.shutdown_manager)
+        self.shutdown_coordinator = SafeShutdownCoordinator(
+            self.shutdown_manager, self.resource_manager
+        )
+        
+        # Initialize existing stability components
+        self.file_validator = FileValidator()
+        self.health_monitor = HealthMonitor()
+        self.circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=60.0)
+        self.retry_policy = RetryPolicy()
+        self.health_checker = None  # Initialized after API client creation
         
         # Initialize components
         self.config_manager = ConfigManager()
@@ -34,11 +59,18 @@ class LalalAIVoiceCleanerApp:
         # Setup logging
         self.setup_logging()
         
+        # Register shutdown callbacks
+        self.shutdown_manager.register_cleanup_callback(self._cleanup_app)
+        self.shutdown_coordinator.register_pre_shutdown_callback(self._prepare_shutdown)
+        
         # Create UI
         self.create_ui()
         
         # Initialize application
         self.initialize_app()
+        
+        # Handle window close event
+        self.root.protocol("WM_DELETE_WINDOW", self._on_window_close)
     
     def setup_logging(self):
         """Setup logging configuration"""
@@ -223,6 +255,12 @@ class LalalAIVoiceCleanerApp:
                     self.auth_status_label.config(foreground="green")
                     self.auth_button.config(state="disabled")
                     self.license_entry.config(state="readonly")
+                    
+                    # Initialize health checker with wrapped client
+                    from retry_mechanisms import APIClientWrapper
+                    wrapped_client = APIClientWrapper(self.api_client, self.retry_policy, self.circuit_breaker)
+                    self.health_checker = HealthChecker(wrapped_client)
+                    
                     self.log_message("Auto-authenticated with saved license key")
             
             self.log_message("Application initialized successfully")
@@ -248,6 +286,11 @@ class LalalAIVoiceCleanerApp:
                 self.auth_status_label.config(foreground="green")
                 self.auth_button.config(state="disabled")
                 self.license_entry.config(state="readonly")
+                
+                # Initialize health checker now that we have an API client
+                from retry_mechanisms import APIClientWrapper
+                wrapped_client = APIClientWrapper(self.api_client, self.retry_policy, self.circuit_breaker)
+                self.health_checker = HealthChecker(wrapped_client)
                 
                 # Save license key
                 self.config_manager.save_config({'license_key': license_key})
@@ -314,8 +357,17 @@ class LalalAIVoiceCleanerApp:
             input_folder = self.input_folder_var.get()
             output_folder = self.output_folder_var.get()
             
-            # Initialize file processor
-            self.file_processor = FileProcessor(self.api_client, output_folder, self)
+            # Validate input folder using file validator
+            if not self.file_validator.validate_directory(input_folder).get('is_valid', False):
+                raise FileProcessingError(f"Invalid input folder: {input_folder}")
+            
+            # Initialize file processor with stability components
+            self.file_processor = FileProcessor(
+                self.api_client, 
+                output_folder, 
+                self,
+                shutdown_coordinator=self.shutdown_coordinator
+            )
             
             # Initialize folder watcher
             self.folder_watcher = FolderWatcher(input_folder, self.file_processor)
@@ -557,7 +609,54 @@ Features:
             else:
                 return
         
+        self._on_window_close()
+    
+    def _on_window_close(self):
+        """Handle window close event with graceful shutdown"""
+        self.shutdown_coordinator.execute_shutdown()
         self.root.destroy()
+    
+    def _prepare_shutdown(self):
+        """Prepare for shutdown"""
+        self.logger.info("Preparing for shutdown...")
+        
+        # Stop watching if active
+        if self.is_watching:
+            self.stop_watching()
+        
+        # Cancel pending operations
+        shutdown_status = self.shutdown_coordinator.get_shutdown_readiness()
+        active_ops = shutdown_status['graceful_shutdown_status']['active_operations']
+        
+        if active_ops > 0:
+            self.logger.info(f"Cancelling {active_ops} active operations...")
+    
+    def _cleanup_app(self):
+        """Clean up application resources"""
+        self.logger.info("Cleaning up application resources...")
+        
+        try:
+            # Stop folder watcher
+            if self.folder_watcher:
+                self.folder_watcher.stop()
+                self.logger.info("Folder watcher stopped")
+            
+            # Stop file processor
+            if self.file_processor:
+                self.file_processor.stop_processing()
+                self.logger.info("File processor stopped")
+            
+            # Close API client
+            if self.api_client:
+                # Close the session if available
+                if hasattr(self.api_client, 'session'):
+                    self.api_client.session.close()
+                self.logger.info("API client closed")
+            
+            self.logger.info("Application cleanup completed successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Error during cleanup: {e}")
 
 
 class TextHandler(logging.Handler):

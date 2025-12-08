@@ -217,3 +217,11 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+TESTING_REPORT.md
+STABILITY_IMPROVEMENTS.md
+api_connection_test_results.json
+FILES_INDEX.md
+FINAL_STATUS.md
+IMPLEMENTATION_SUMMARY.md
+lalalai_voice_cleaner.log
+QUICK_REFERENCE.md

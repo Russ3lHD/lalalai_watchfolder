@@ -4,3 +4,5 @@ watchdog==3.0.0
 tkinter-tooltip==2.1.0
 pillow==10.1.0
 python-dateutil==2.8.2
+psutil==5.9.6
+sv-ttk==2.6.1

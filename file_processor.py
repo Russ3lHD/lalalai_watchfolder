@@ -12,13 +12,15 @@ from api_client import LalalAIClient
 class FileProcessor:
     """Processes audio files using Lalal AI API"""
     
-    def __init__(self, api_client, output_folder: str, app_instance):
+    def __init__(self, api_client, output_folder: str, app_instance, shutdown_coordinator=None):
         self.api_client = api_client
         self.output_folder = output_folder
         self.app_instance = app_instance
+        self.shutdown_coordinator = shutdown_coordinator
         self.processing_queue = Queue()
         self.is_processing = False
         self.processing_thread: Optional[threading.Thread] = None
+        self.current_operation_id: Optional[str] = None
         self.logger = logging.getLogger(__name__)
         
         # Processing statistics
