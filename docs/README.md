@@ -32,6 +32,12 @@ A comprehensive Python desktop application that integrates with the Lalal AI API
 - **Live Monitoring**: Real-time processing status and queue management
 - **Multiple Integration Modes**: Launcher offers desktop and API integration options
 
+## Main Interface
+
+![Main Page Screenshot](./Main-Page.png)
+
+The application features a modern, dark-themed interface with intuitive controls for easy file processing and configuration management.
+
 ## Requirements
 
 - Python 3.8+
