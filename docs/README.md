@@ -14,7 +14,7 @@ A comprehensive Python desktop application that integrates with the Lalal AI API
 - **Organized Output**: Automatically organizes processed files and moves originals to processed folder
 
 ### ⚙️ Advanced Configuration
-- **Neural Network Selection**: Choose from auto, phoenix, orion, or perseus AI models
+- **Neural Network Selection**: Choose from auto, phoenix, orion, perseus, or andromeda AI models
 - **Processing Options**: Configurable noise cancelling, dereverb, filter intensity, and enhanced processing
 - **Voice Pack Selection**: Multiple AI voice options (ALEX_KAYE, JENNIFER, DAVID, SARAH, MICHAEL)
 - **Fine-tuning Controls**: Accent enhancement, pitch shifting, and dereverb for voice conversion
@@ -96,7 +96,7 @@ python launcher.py
 
 ### Settings Configuration
 Access detailed settings to customize:
-- **AI Model Selection**: auto, phoenix, orion, perseus
+- **AI Model Selection**: auto, phoenix, orion, perseus, andromeda
 - **Processing Intensity**: Filter levels and enhanced processing
 - **Voice Pack Options**: Different AI voices for conversion
 - **General Settings**: Auto-start, processed folder organization

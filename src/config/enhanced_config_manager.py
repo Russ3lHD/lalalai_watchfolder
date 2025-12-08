@@ -15,11 +15,11 @@ import copy
 from cryptography.fernet import Fernet
 import base64
 
-from exceptions import (
+from src.utils.exceptions import (
     ConfigurationError, ConfigurationValidationError,
     ConfigurationEncryptionError, ConfigurationFileError
 )
-from file_validator import AtomicFileOperation
+from src.utils.file_validator import AtomicFileOperation
 
 
 class ConfigSchema:
@@ -84,7 +84,7 @@ class ConfigSchema:
             'splitter': {
                 'type': str,
                 'default': 'perseus',
-                'choices': ['auto', 'phoenix', 'orion', 'perseus'],
+                'choices': ['auto', 'phoenix', 'orion', 'perseus', 'andromeda'],
                 'description': 'Neural network to use'
             },
             'filter': {

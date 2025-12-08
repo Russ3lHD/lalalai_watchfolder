@@ -550,7 +550,7 @@ class LalalAIVoiceCleanerApp:
         
         self.splitter_var = tk.StringVar(value=self.config_manager.get('splitter', 'perseus'))
         splitter_combo = ttk.Combobox(settings_frame, textvariable=self.splitter_var, state="readonly", width=20)
-        splitter_combo['values'] = ('auto', 'phoenix', 'orion', 'perseus')
+        splitter_combo['values'] = ('auto', 'phoenix', 'orion', 'perseus', 'andromeda')
         splitter_combo.grid(row=10, column=0, sticky=tk.W, pady=(0, 10))
         self.voice_cleanup_widgets.append(splitter_combo)
         
@@ -707,7 +707,11 @@ class LalalAIVoiceCleanerApp:
         self.general_widgets.append(save_button)
         
         # Initialize mode-specific visibility
+        self.root.update_idletasks()  # Ensure UI is fully rendered
         self.on_processing_mode_change()
+        
+        # Ensure general settings are always visible
+        self._show_widgets(self.general_widgets, True)
     
     def on_processing_mode_change(self, event=None):
         """Handle processing mode change to show/hide relevant settings"""
@@ -725,10 +729,14 @@ class LalalAIVoiceCleanerApp:
     def _show_widgets(self, widgets, show):
         """Show or hide a list of widgets"""
         for widget in widgets:
-            if show:
-                widget.grid()
-            else:
-                widget.grid_remove()
+            try:
+                if show:
+                    widget.grid()
+                else:
+                    widget.grid_remove()
+            except Exception as e:
+                # Skip widgets that might not have grid method
+                pass
         
         # Also update the canvas scrollregion after showing/hiding widgets
         self.root.update_idletasks()
