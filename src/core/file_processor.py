@@ -193,33 +193,53 @@ class FileProcessor:
                 raise Exception(f"Unknown processing mode: {processing_mode}")
             
             # Step 3: Wait for processing to complete
-            self.logger.info(f"Waiting for processing to complete. Job ID: {job_id}")
+            self.logger.info(f"Waiting for processing to complete. File ID: {job_id}")
             if self.app_instance:
                 if processing_mode == 'voice_cleanup':
                     self.app_instance.log_message(f"Processing voice cleanup...")
                 else:
                     self.app_instance.log_message(f"Processing voice conversion...")
             
-            processed_file_url = self._wait_for_processing_completion(job_id)
+            processing_result = self._wait_for_processing_completion(job_id)
             
-            if not processed_file_url:
+            if not processing_result:
                 raise Exception("Processing did not complete successfully")
             
-            # Step 4: Download processed file
+            # Step 4: Download processed files
+            # The API returns both stem_track (extracted voice/instrument) and back_track (everything else)
+            stem_track_url = processing_result.get('stem_track')
+            back_track_url = processing_result.get('back_track')
+            
+            if not stem_track_url:
+                raise Exception("No download URL received for processed file")
+            
+            # Download the stem track (the extracted audio - voice or instrument)
+            file_base, file_ext = os.path.splitext(file_name)
             if processing_mode == 'voice_cleanup':
-                output_file_name = f"cleaned_{file_name}"
+                stem_output_name = f"{file_base}_voice{file_ext}"
+                back_output_name = f"{file_base}_background{file_ext}"
             else:
-                output_file_name = f"converted_{file_name}"
-            output_path = os.path.join(self.output_folder, output_file_name)
+                stem_output_name = f"{file_base}_converted{file_ext}"
+                back_output_name = f"{file_base}_original{file_ext}"
             
-            self.logger.info(f"Downloading processed file: {output_file_name}")
+            stem_output_path = os.path.join(self.output_folder, stem_output_name)
+            
+            self.logger.info(f"Downloading stem track: {stem_output_name}")
             if self.app_instance:
-                self.app_instance.log_message(f"Downloading processed file")
+                self.app_instance.log_message(f"Downloading processed audio...")
             
-            success = self.api_client.download_processed_file(processed_file_url, output_path)
+            success = self.api_client.download_processed_file(stem_track_url, stem_output_path)
             
             if not success:
-                raise Exception("Failed to download processed file")
+                raise Exception("Failed to download stem track")
+            
+            # Optionally download the back track (background/instrumental)
+            if back_track_url:
+                back_output_path = os.path.join(self.output_folder, back_output_name)
+                self.logger.info(f"Downloading back track: {back_output_name}")
+                if self.app_instance:
+                    self.app_instance.log_message(f"Downloading background track...")
+                self.api_client.download_processed_file(back_track_url, back_output_path)
             
             # Step 5: Move original file to processed folder
             processed_original_path = os.path.join(self.processed_folder, f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file_name}")
@@ -271,28 +291,41 @@ class FileProcessor:
                 else:
                     self.app_instance.update_processing_status("Idle")
     
-    def _wait_for_processing_completion(self, job_id: str, timeout: int = 300) -> Optional[str]:
-        """Wait for processing job to complete"""
+    def _wait_for_processing_completion(self, file_id: str, timeout: int = 600) -> Optional[Dict[str, Any]]:
+        """Wait for processing job to complete
+        
+        Returns dict with stem_track and back_track URLs on success
+        """
         start_time = time.time()
-        check_interval = 5  # Check every 5 seconds
+        check_interval = 10  # Check every 10 seconds (API recommends 15s)
         
         while time.time() - start_time < timeout:
             try:
-                status, result = self.api_client.check_job_status(job_id)
+                status, result = self.api_client.check_job_status(file_id)
                 
                 if status == "completed":
                     self.logger.info("Processing completed successfully")
-                    return result.get('preview_url') if result else None
+                    if self.app_instance:
+                        self.app_instance.log_message("Processing completed!")
+                    return result  # Contains stem_track and back_track URLs
                 
                 elif status == "error":
-                    self.logger.error("Processing failed with error status")
+                    error_msg = result.get('error', 'Unknown error') if result else 'Unknown error'
+                    self.logger.error(f"Processing failed: {error_msg}")
+                    if self.app_instance:
+                        self.app_instance.log_message(f"Processing error: {error_msg}", "error")
+                    return None
+                
+                elif status == "cancelled":
+                    self.logger.warning("Processing was cancelled")
                     return None
                 
                 elif status == "processing":
-                    self.logger.info("Processing in progress...")
+                    progress = result.get('progress', 0) if result else 0
+                    elapsed = int(time.time() - start_time)
+                    self.logger.info(f"Processing in progress... {progress}%")
                     if self.app_instance:
-                        elapsed = int(time.time() - start_time)
-                        self.app_instance.log_message(f"Processing... ({elapsed}s elapsed)")
+                        self.app_instance.log_message(f"Processing... {progress}% ({elapsed}s elapsed)")
                 
                 else:
                     self.logger.warning(f"Unknown processing status: {status}")

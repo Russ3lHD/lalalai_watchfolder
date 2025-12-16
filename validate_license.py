@@ -13,28 +13,31 @@ def validate_license_key(license_key):
     print(f"Testing license key: {license_key[:8]}...")
     print(f"Key length: {len(license_key)} characters")
     
-    # Basic format validation
-    if len(license_key) < 20:
-        print("❌ Key is too short - Lalal AI keys are typically 40+ characters")
-        return False
-    
-    # Test API connection
+    # Test API connection using the billing endpoint (correct way to validate)
     try:
-        session = requests.Session()
-        session.headers.update({
-            'Authorization': f'license {license_key}',
-            'User-Agent': 'LalalAIVoiceCleaner/1.0.0'
-        })
-        
-        # Test API endpoint
-        response = session.head("https://www.lalal.ai/api/upload/")
+        response = requests.get(
+            "https://www.lalal.ai/billing/get-limits/",
+            params={'key': license_key},
+            timeout=30
+        )
         
         if response.status_code == 200:
-            print("✅ License key is valid!")
-            return True
-        elif response.status_code == 401:
-            print("❌ Invalid license key - please check your key")
-            return False
+            result = response.json()
+            if result.get('status') == 'success':
+                print("✅ License key is valid!")
+                print(f"   Plan: {result.get('option', 'Unknown')}")
+                print(f"   Email: {result.get('email', 'Unknown')}")
+                print(f"   Total minutes: {result.get('process_duration_limit', 0):.1f}")
+                print(f"   Used minutes: {result.get('process_duration_used', 0):.1f}")
+                print(f"   Remaining: {result.get('process_duration_left', 0):.1f} minutes")
+                return True
+            else:
+                error = result.get('error', 'Unknown error')
+                print(f"❌ License validation failed: {error}")
+                print()
+                print("Note: LALAL.AI uses a 'License Key' from your account,")
+                print("not an 'Activation ID'. Please check you're using the correct key.")
+                return False
         else:
             print(f"❌ API returned status code: {response.status_code}")
             return False

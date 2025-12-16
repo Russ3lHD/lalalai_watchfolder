@@ -22,12 +22,58 @@ class LalalAIClient:
     def test_connection(self) -> bool:
         """Test API connection and validate license"""
         try:
-            # Test with a simple upload endpoint check
-            response = self.session.head(f"{self.BASE_URL}/upload/")
-            return response.status_code == 200
+            # Use the billing/get-limits endpoint to validate license
+            # This is the proper way to check if a license key is valid
+            response = self.session.get(
+                f"https://www.lalal.ai/billing/get-limits/",
+                params={'key': self.license_key},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('status') == 'success':
+                    # Log license info
+                    option = result.get('option', 'Unknown')
+                    email = result.get('email', 'Unknown')
+                    minutes_left = result.get('process_duration_left', 0)
+                    self.logger.info(f"License valid: {option} plan, {minutes_left:.1f} minutes remaining")
+                    return True
+                else:
+                    error = result.get('error', 'Unknown error')
+                    self.logger.error(f"License validation failed: {error}")
+                    return False
+            else:
+                self.logger.error(f"License check returned status {response.status_code}")
+                return False
+                
         except Exception as e:
             self.logger.error(f"Connection test failed: {str(e)}")
             return False
+    
+    def get_license_info(self) -> Optional[Dict[str, Any]]:
+        """Get detailed license information including remaining minutes"""
+        try:
+            response = self.session.get(
+                f"https://www.lalal.ai/billing/get-limits/",
+                params={'key': self.license_key},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('status') == 'success':
+                    return {
+                        'plan': result.get('option', 'Unknown'),
+                        'email': result.get('email', 'Unknown'),
+                        'total_minutes': result.get('process_duration_limit', 0),
+                        'used_minutes': result.get('process_duration_used', 0),
+                        'remaining_minutes': result.get('process_duration_left', 0)
+                    }
+            return None
+        except Exception as e:
+            self.logger.error(f"Failed to get license info: {str(e)}")
+            return None
     
     def upload_file(self, file_path: str) -> Optional[str]:
         """Upload file to Lalal AI server"""
@@ -78,72 +124,116 @@ class LalalAIClient:
             raise
     
     def process_voice_cleanup(self, file_id: str, **options) -> Optional[str]:
-        """Process voice cleanup using Lalal AI API"""
+        """Process voice cleanup using Lalal AI API
+        
+        Returns the file_id which is used to check status (not a separate job_id)
+        """
         try:
             # Default options for voice cleanup
             processing_params = {
                 'id': file_id,
                 'stem': options.get('stem', 'voice'),  # What to extract
-                'splitter': options.get('splitter', 'perseus'),  # Neural network to use
-                'filter': options.get('filter', 1),  # Post-processing filter intensity
-                'enhanced_processing_enabled': options.get('enhanced_processing', True),
-                'noise_cancelling_level': options.get('noise_cancelling', 1),
-                'dereverb_enabled': options.get('dereverb', True)
+                'splitter': options.get('splitter', 'orion'),  # Neural network to use
+                'dereverb_enabled': options.get('dereverb', False),
             }
             
-            # Prepare request
-            data = {
-                'params': json.dumps([processing_params])
-            }
+            # Add stem-specific options
+            if options.get('stem') == 'voice':
+                processing_params['noise_cancelling_level'] = options.get('noise_cancelling', 1)
+            else:
+                processing_params['enhanced_processing_enabled'] = options.get('enhanced_processing', False)
             
             self.logger.info(f"Starting voice cleanup for file ID: {file_id}")
+            self.logger.info(f"Split request params: {processing_params}")
             
+            # Send as form-urlencoded with params as JSON string
             response = self.session.post(
                 f"{self.BASE_URL}/split/",
-                data=data,
+                data={'params': json.dumps([processing_params])},
                 timeout=60
             )
             
             if response.status_code == 200:
                 result = response.json()
+                self.logger.info(f"Split API response: {result}")
                 if result.get('status') == 'success':
-                    # Get the processing job ID
-                    job_id = result.get('id')
-                    self.logger.info(f"Voice cleanup job started. Job ID: {job_id}")
-                    return job_id
+                    # The file_id is used to check status, not a separate job_id
+                    self.logger.info(f"Voice cleanup started for file ID: {file_id}")
+                    return file_id  # Return file_id to use with check endpoint
                 else:
                     error_msg = result.get('error', 'Unknown processing error')
                     raise Exception(f"Processing failed: {error_msg}")
             else:
-                raise Exception(f"Processing request failed with status {response.status_code}")
+                raise Exception(f"Processing request failed with status {response.status_code}: {response.text}")
                 
         except Exception as e:
             self.logger.error(f"Voice cleanup processing failed: {str(e)}")
             raise
     
-    def check_job_status(self, job_id: str) -> Tuple[str, Optional[Dict[str, Any]]]:
-        """Check the status of a processing job"""
+    def check_job_status(self, file_id: str) -> Tuple[str, Optional[Dict[str, Any]]]:
+        """Check the status of a processing job using /api/check/ endpoint"""
         try:
-            # Note: This is a placeholder as the exact API endpoint for checking job status
-            # would need to be confirmed from the actual Lalal AI API documentation
+            response = self.session.post(
+                f"{self.BASE_URL}/check/",
+                data={'id': file_id},
+                timeout=30
+            )
             
-            # For now, we'll simulate checking status
-            # In a real implementation, this would poll the API for job status
-            
-            # Simulate processing time
-            time.sleep(2)
-            
-            # Return mock success for demonstration
-            # In reality, this would check the actual job status
-            return "completed", {
-                "preview_url": f"{self.BASE_URL}/preview/{job_id}",
-                "status": "completed",
-                "progress": 100
-            }
-            
+            if response.status_code == 200:
+                result = response.json()
+                self.logger.debug(f"Check API response: {result}")
+                
+                if result.get('status') == 'error':
+                    error = result.get('error', 'Unknown error')
+                    self.logger.error(f"Check status error: {error}")
+                    return "error", {"error": error}
+                
+                # Get the file result from the nested structure
+                file_result = result.get('result', {}).get(file_id, {})
+                
+                if not file_result:
+                    # Try checking if result is directly the file data
+                    file_result = result
+                
+                if file_result.get('status') == 'error':
+                    return "error", {"error": file_result.get('error', 'Unknown error')}
+                
+                # Check task state
+                task = file_result.get('task')
+                if task:
+                    task_state = task.get('state')
+                    
+                    if task_state == 'success':
+                        # Processing completed, get download URLs
+                        split_data = file_result.get('split', {})
+                        return "completed", {
+                            "stem_track": split_data.get('stem_track'),
+                            "stem_track_size": split_data.get('stem_track_size'),
+                            "back_track": split_data.get('back_track'),
+                            "back_track_size": split_data.get('back_track_size'),
+                            "duration": split_data.get('duration'),
+                            "stem": split_data.get('stem')
+                        }
+                    
+                    elif task_state == 'error':
+                        return "error", {"error": task.get('error', 'Processing error')}
+                    
+                    elif task_state == 'progress':
+                        progress = task.get('progress', 0)
+                        return "processing", {"progress": progress}
+                    
+                    elif task_state == 'cancelled':
+                        return "cancelled", None
+                
+                # No task yet, still queued
+                return "processing", {"progress": 0}
+                
+            else:
+                raise Exception(f"Check request failed with status {response.status_code}")
+                
         except Exception as e:
             self.logger.error(f"Job status check failed: {str(e)}")
-            return "error", None
+            return "error", {"error": str(e)}
     
     def download_processed_file(self, file_url: str, output_path: str) -> bool:
         """Download processed file from Lalal AI"""
@@ -196,42 +286,42 @@ class LalalAIClient:
             return None
 
     def convert_voice(self, file_id: str, **options) -> Optional[str]:
-        """Convert voice using Lalal AI voice conversion API"""
+        """Convert voice using Lalal AI voice conversion API
+        
+        Returns file_id to use with check_voice_conversion_status
+        """
         try:
-            # Default options for voice conversion
-            conversion_params = {
+            # API uses form data, not JSON params for voice conversion
+            form_data = {
                 'id': file_id,
-                'voice_pack_id': options.get('voice_pack_id', 'ALEX_KAYE'),
+                'voice': options.get('voice_pack_id', 'ALEX_KAYE'),
                 'accent_enhance': options.get('accent_enhance', 1.0),
-                'pitch_shifting': options.get('pitch_shifting', True),
-                'dereverb_enabled': options.get('dereverb_enabled', False)
-            }
-            
-            # Prepare request
-            data = {
-                'params': json.dumps([conversion_params])
+                'pitch_shifting': 'true' if options.get('pitch_shifting', True) else 'false',
+                'dereverb_enabled': 'true' if options.get('dereverb_enabled', False) else 'false'
             }
             
             self.logger.info(f"Starting voice conversion for file ID: {file_id}")
+            self.logger.info(f"Voice conversion params: {form_data}")
             
             response = self.session.post(
-                f"{self.BASE_URL}/voice_convert/",
-                data=data,
+                f"{self.BASE_URL}/change_voice/",
+                data=form_data,
                 timeout=60
             )
             
             if response.status_code == 200:
                 result = response.json()
+                self.logger.info(f"Voice conversion response: {result}")
                 if result.get('status') == 'success':
-                    # Get the conversion job ID
-                    job_id = result.get('id')
-                    self.logger.info(f"Voice conversion job started. Job ID: {job_id}")
-                    return job_id
+                    # Return file_id to check status
+                    returned_id = result.get('id', file_id)
+                    self.logger.info(f"Voice conversion started. File ID: {returned_id}")
+                    return returned_id
                 else:
                     error_msg = result.get('error', 'Unknown conversion error')
                     raise Exception(f"Conversion failed: {error_msg}")
             else:
-                raise Exception(f"Conversion request failed with status {response.status_code}")
+                raise Exception(f"Conversion request failed with status {response.status_code}: {response.text}")
                 
         except Exception as e:
             self.logger.error(f"Voice conversion failed: {str(e)}")

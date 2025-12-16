@@ -283,7 +283,7 @@ class LalalAIVoiceCleanerApp:
                     self.license_entry.config(state="readonly")
                     
                     # Initialize health checker with wrapped client
-                    from retry_mechanisms import APIClientWrapper
+                    from src.utils.retry_mechanisms import APIClientWrapper
                     wrapped_client = APIClientWrapper(self.api_client, self.retry_policy, self.circuit_breaker)
                     self.health_checker = HealthChecker(wrapped_client)
                     
@@ -314,7 +314,7 @@ class LalalAIVoiceCleanerApp:
                 self.license_entry.config(state="readonly")
                 
                 # Initialize health checker now that we have an API client
-                from retry_mechanisms import APIClientWrapper
+                from src.utils.retry_mechanisms import APIClientWrapper
                 wrapped_client = APIClientWrapper(self.api_client, self.retry_policy, self.circuit_breaker)
                 self.health_checker = HealthChecker(wrapped_client)
                 
