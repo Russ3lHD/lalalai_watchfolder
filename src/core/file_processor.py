@@ -231,7 +231,7 @@ class FileProcessor:
                 raise Exception("Failed to download processed file")
             
             # Step 5: Move original file to processed folder
-            processed_original_path = os.path.join(self.processed_folder, f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file_name}")
+            processed_original_path = os.path.join(self.processed_folder, f"{datetime.now().strftime('%Y%m%d')}_{file_name}")
             
             try:
                 os.rename(file_path, processed_original_path)
