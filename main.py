@@ -793,7 +793,7 @@ class LalalAIVoiceCleanerApp:
         """Show about dialog"""
         about_text = """Lalal AI Watchfolder
 
-Version 1.3
+Version 1.4
 
 A desktop application for automatic voice cleanup using Lalal AI API.
 

@@ -208,38 +208,27 @@ class FileProcessor:
             # Step 4: Download processed files
             # The API returns both stem_track (extracted voice/instrument) and back_track (everything else)
             stem_track_url = processing_result.get('stem_track')
-            back_track_url = processing_result.get('back_track')
             
             if not stem_track_url:
                 raise Exception("No download URL received for processed file")
             
-            # Download the stem track (the extracted audio - voice or instrument)
+            # Download the stem track (the extracted clean voice)
             file_base, file_ext = os.path.splitext(file_name)
             if processing_mode == 'voice_cleanup':
-                stem_output_name = f"{file_base}_voice{file_ext}"
-                back_output_name = f"{file_base}_background{file_ext}"
+                stem_output_name = f"{file_base}_clean{file_ext}"
             else:
                 stem_output_name = f"{file_base}_converted{file_ext}"
-                back_output_name = f"{file_base}_original{file_ext}"
             
             stem_output_path = os.path.join(self.output_folder, stem_output_name)
             
-            self.logger.info(f"Downloading stem track: {stem_output_name}")
+            self.logger.info(f"Downloading clean voice: {stem_output_name}")
             if self.app_instance:
-                self.app_instance.log_message(f"Downloading processed audio...")
+                self.app_instance.log_message(f"Downloading clean voice...")
             
             success = self.api_client.download_processed_file(stem_track_url, stem_output_path)
             
             if not success:
-                raise Exception("Failed to download stem track")
-            
-            # Optionally download the back track (background/instrumental)
-            if back_track_url:
-                back_output_path = os.path.join(self.output_folder, back_output_name)
-                self.logger.info(f"Downloading back track: {back_output_name}")
-                if self.app_instance:
-                    self.app_instance.log_message(f"Downloading background track...")
-                self.api_client.download_processed_file(back_track_url, back_output_path)
+                raise Exception("Failed to download processed file")
             
             # Step 5: Move original file to processed folder
             processed_original_path = os.path.join(self.processed_folder, f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file_name}")
