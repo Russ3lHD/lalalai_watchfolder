@@ -161,6 +161,10 @@ class LalalAIVoiceCleanerApp:
         self.auth_button = ttk.Button(auth_frame, text="Authenticate", command=self.authenticate)
         self.auth_button.grid(row=1, column=2, padx=(5, 0), pady=(5, 0))
         
+        # Reset button
+        self.reset_button = ttk.Button(auth_frame, text="Reset", command=self.reset_license)
+        self.reset_button.grid(row=1, column=3, padx=(5, 0), pady=(5, 0))
+        
         # Configure auth frame column
         auth_frame.columnconfigure(1, weight=1)
     
@@ -331,6 +335,23 @@ class LalalAIVoiceCleanerApp:
             self.auth_status_label.config(foreground="red")
             messagebox.showerror("Authentication Error", str(e))
             self.log_message(f"Authentication failed: {str(e)}", "error")
+    
+    def reset_license(self):
+        """Reset the stored license key"""
+        if messagebox.askyesno("Reset License", "Are you sure you want to reset the license key?\n\nYou will need to enter a new key to continue using the app."):
+            # Clear stored license
+            self.config_manager.save_config({'license_key': ''})
+            
+            # Reset UI state
+            self.is_authenticated = False
+            self.api_client = None
+            self.license_key_var.set("")
+            self.auth_status_var.set("Not Authenticated")
+            self.auth_status_label.config(foreground="black")
+            self.auth_button.config(state="normal")
+            self.license_entry.config(state="normal")
+            
+            self.log_message("License key reset. Please enter a new key.")
     
     def browse_folder(self, folder_type):
         """Browse for folder"""
