@@ -97,31 +97,8 @@ class ConfigSchema:
             'processing_mode': {
                 'type': str,
                 'default': 'voice_cleanup',
-                'choices': ['voice_cleanup', 'voice_converter'],
+                'choices': ['voice_cleanup'],
                 'description': 'Processing mode'
-            },
-            'voice_pack_id': {
-                'type': str,
-                'default': 'ALEX_KAYE',
-                'choices': ['ALEX_KAYE', 'JENNIFER', 'DAVID', 'SARAH', 'MICHAEL'],
-                'description': 'Voice pack for conversion'
-            },
-            'accent_enhance': {
-                'type': float,
-                'default': 1.0,
-                'min_value': 0.5,
-                'max_value': 2.0,
-                'description': 'Accent enhancement factor'
-            },
-            'pitch_shifting': {
-                'type': bool,
-                'default': True,
-                'description': 'Enable pitch shifting'
-            },
-            'dereverb_enabled': {
-                'type': bool,
-                'default': False,
-                'description': 'Enable dereverb for voice conversion'
             },
             'max_queue_size': {
                 'type': int,

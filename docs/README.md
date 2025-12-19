@@ -1,12 +1,11 @@
 # Lalal AI Voice Cleaner & Converter
 
-A comprehensive Python desktop application that integrates with the Lalal AI API to automatically process audio files in two powerful modes: voice cleanup (background music/noise removal) and voice conversion (AI voice transformation).
+A comprehensive Python desktop application that integrates with the Lalal AI API to automatically process audio files in the primary mode: voice cleanup (background music/noise removal).
 
 ## Features
 
-### 🎯 Dual Processing Modes
+### 🎯 Processing Mode
 - **Voice Cleanup**: Removes background music and noise, extracts specific audio stems (voice, drums, bass, piano, guitar, etc.)
-- **Voice Conversion**: Transforms voices using AI voice packs with accent enhancement and pitch shifting
 
 ### 📁 Smart File Management
 - **Folder Monitoring**: Watches input folder for new files and processes them automatically
@@ -17,8 +16,7 @@ A comprehensive Python desktop application that integrates with the Lalal AI API
 ### ⚙️ Advanced Configuration
 - **Neural Network Selection**: Choose from auto, phoenix, orion, perseus, or andromeda AI models
 - **Processing Options**: Configurable noise cancelling, dereverb, filter intensity, and enhanced processing
-- **Voice Pack Selection**: Multiple AI voice options (ALEX_KAYE, JENNIFER, DAVID, SARAH, MICHAEL)
-- **Fine-tuning Controls**: Accent enhancement, pitch shifting, and dereverb for voice conversion
+- **Voice Pack Selection**: (Not applicable — voice conversion removed in this branch)
 
 ### 🔐 Security & Reliability
 - **Secure Authentication**: License key encryption using AES-128 (Fernet)
@@ -81,7 +79,7 @@ python launcher.py
 1. **Launch Application**: Run `python main.py` or use the launcher
 2. **Authenticate**: Enter your Lalal AI license key
 3. **Configure Folders**: Set input and output folder paths
-4. **Choose Processing Mode**: Select voice cleanup or voice conversion in settings
+4. **Choose Processing Mode**: Select voice cleanup in settings
 5. **Start Monitoring**: Click "Start Watching" to begin folder monitoring
 6. **Process Files**: Drop audio files in the input folder
 
@@ -94,12 +92,8 @@ python launcher.py
 - Dereverb options for echo removal
 - Multiple AI neural network models available
 
-#### Voice Conversion Mode
-- Transforms voice using AI voice packs
-- Available voices: ALEX_KAYE, JENNIFER, DAVID, SARAH, MICHAEL
-- Accent enhancement controls
-- Pitch shifting options
-- Dereverb for voice conversion
+(Voice conversion mode has been removed in this branch.)
+
 
 ### Settings Configuration
 Access detailed settings to customize:

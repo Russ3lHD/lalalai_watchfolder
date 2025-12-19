@@ -509,7 +509,7 @@ class LalalAIVoiceCleanerApp:
         ttk.Label(settings_frame, text="Processing Mode:", font=("Arial", 10, "bold")).grid(row=0, column=0, sticky=tk.W, pady=(0, 10))
         self.processing_mode_var = tk.StringVar(value=self.config_manager.get('processing_mode', 'voice_cleanup'))
         mode_combo = ttk.Combobox(settings_frame, textvariable=self.processing_mode_var, state="readonly", width=20)
-        mode_combo['values'] = ('voice_cleanup', 'voice_converter')
+        mode_combo['values'] = ('voice_cleanup',)
         mode_combo.grid(row=1, column=0, sticky=tk.W, pady=(0, 20))
         
         # Bind mode change event
@@ -597,45 +597,6 @@ class LalalAIVoiceCleanerApp:
         voice_converter_label = ttk.Label(settings_frame, text="Voice Converter Options", font=("Arial", 10, "bold"))
         voice_converter_label.grid(row=13, column=0, sticky=tk.W, pady=(20, 10))
         self.voice_converter_widgets.append(voice_converter_label)
-        
-        # Voice Pack Selection
-        voice_pack_label = ttk.Label(settings_frame, text="Voice Pack:")
-        voice_pack_label.grid(row=14, column=0, sticky=tk.W, pady=(10, 5))
-        self.voice_converter_widgets.append(voice_pack_label)
-        
-        self.voice_pack_var = tk.StringVar(value=self.config_manager.get('voice_pack_id', 'ALEX_KAYE'))
-        voice_pack_combo = ttk.Combobox(settings_frame, textvariable=self.voice_pack_var, state="readonly", width=20)
-        voice_pack_combo['values'] = ('ALEX_KAYE', 'JENNIFER', 'DAVID', 'SARAH', 'MICHAEL')  # Common voice packs
-        voice_pack_combo.grid(row=15, column=0, sticky=tk.W, pady=(0, 10))
-        self.voice_converter_widgets.append(voice_pack_combo)
-        
-        # Accent Enhance
-        accent_label = ttk.Label(settings_frame, text="Accent Enhance:")
-        accent_label.grid(row=16, column=0, sticky=tk.W, pady=(10, 5))
-        self.voice_converter_widgets.append(accent_label)
-        
-        self.accent_enhance_var = tk.DoubleVar(value=self.config_manager.get('accent_enhance', 1.0))
-        accent_scale = ttk.Scale(settings_frame, from_=0.5, to=2.0, variable=self.accent_enhance_var, orient=tk.HORIZONTAL)
-        accent_scale.grid(row=17, column=0, sticky=tk.W+tk.E, pady=(0, 5))
-        self.voice_converter_widgets.append(accent_scale)
-        
-        accent_value_label = ttk.Label(settings_frame, textvariable=self.accent_enhance_var)
-        accent_value_label.grid(row=18, column=0, sticky=tk.W, pady=(0, 10))
-        self.voice_converter_widgets.append(accent_value_label)
-        
-        # Pitch Shifting
-        self.pitch_shifting_var = tk.BooleanVar(value=self.config_manager.get('pitch_shifting', True))
-        pitch_check = ttk.Checkbutton(settings_frame, text="Pitch Shifting", 
-                       variable=self.pitch_shifting_var)
-        pitch_check.grid(row=19, column=0, sticky=tk.W, pady=2)
-        self.voice_converter_widgets.append(pitch_check)
-        
-        # Dereverb for Voice Conversion
-        self.dereverb_enabled_var = tk.BooleanVar(value=self.config_manager.get('dereverb_enabled', False))
-        dereverb_conv_check = ttk.Checkbutton(settings_frame, text="Dereverb (Voice Conversion)", 
-                       variable=self.dereverb_enabled_var)
-        dereverb_conv_check.grid(row=20, column=0, sticky=tk.W, pady=2)
-        self.voice_converter_widgets.append(dereverb_conv_check)
         
         # General Settings
         general_label = ttk.Label(settings_frame, text="General Settings", font=("Arial", 10, "bold"))
@@ -774,10 +735,6 @@ class LalalAIVoiceCleanerApp:
             'splitter': self.splitter_var.get(),
             'filter': self.filter_var.get(),
             'processing_mode': self.processing_mode_var.get(),
-            'voice_pack_id': self.voice_pack_var.get(),
-            'accent_enhance': self.accent_enhance_var.get(),
-            'pitch_shifting': self.pitch_shifting_var.get(),
-            'dereverb_enabled': self.dereverb_enabled_var.get(),
             'max_queue_size': self.max_queue_size_var.get(),
             'retry_attempts': self.retry_attempts_var.get(),
             'timeout_seconds': self.timeout_seconds_var.get(),
