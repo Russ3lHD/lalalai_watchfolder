@@ -12,6 +12,7 @@ A comprehensive Python desktop application that integrates with the Lalal AI API
 - **Folder Monitoring**: Watches input folder for new files and processes them automatically
 - **Batch Processing**: Handles multiple files sequentially with queue management
 - **Organized Output**: Automatically organizes processed files and moves originals to processed folder
+- **Settings Location**: Configuration files stored securely in user home directory C:\Users\%localuser%\.lalalai_voice_cleaner
 
 ### ⚙️ Advanced Configuration
 - **Neural Network Selection**: Choose from auto, phoenix, orion, perseus, or andromeda AI models
