@@ -295,6 +295,28 @@ class LalalAIVoiceCleanerApp:
             
             self.log_message("Application initialized successfully")
             
+            # Auto-start watching if configured and prerequisites are met
+            try:
+                if config and config.get('auto_start', False):
+                    input_folder = self.input_folder_var.get()
+                    output_folder = self.output_folder_var.get()
+
+                    if not self.is_authenticated:
+                        self.log_message("Auto-start requested but not authenticated; not starting.")
+                    elif not input_folder or not output_folder:
+                        self.log_message("Auto-start requested but input/output folder not configured; not starting.")
+                    elif not os.path.exists(input_folder) or not os.path.exists(output_folder):
+                        self.log_message("Auto-start requested but input/output folder not found; not starting.")
+                    else:
+                        self.log_message("Auto-start enabled; starting folder watcher")
+                        try:
+                            # Start watcher; any errors are logged (do not block UI with modal dialogs during init)
+                            self.start_watching()
+                        except Exception as e:
+                            self.log_message(f"Failed to auto-start watching: {str(e)}", "error")
+            except Exception as e:
+                self.logger.error(f"Error during auto-start check: {str(e)}")
+
         except Exception as e:
             self.log_message(f"Error initializing application: {str(e)}", "error")
     
