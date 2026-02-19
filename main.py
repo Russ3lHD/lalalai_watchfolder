@@ -340,6 +340,7 @@ class LalalAIVoiceCleanerApp:
             except Exception as e:
                 self.logger.error(f"Error during auto-start check: {str(e)}")
 
+
         except Exception as e:
             self.log_message(f"Error initializing application: {str(e)}", "error")
     

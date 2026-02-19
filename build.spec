@@ -59,7 +59,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='Watchfolder-icon-final.ico',  # Application icon
+    icon='Watchfolder-icon.ico',  # Application icon
 )
 
 coll = COLLECT(
