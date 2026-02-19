@@ -38,10 +38,10 @@ from src.utils import (
 )
 from src.monitoring import HealthMonitor, ResourceManager
 
-class LalalAIVoiceCleanerApp:
+class LalalAIWatchfolderApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Lalal AI Voice Cleaner")
+        self.root.title("Lalal AI Watchfolder")
         self.root.geometry("800x600")
         self.root.minsize(700, 500)
         
@@ -55,7 +55,7 @@ class LalalAIVoiceCleanerApp:
             if sys.platform.startswith('win'):
                 try:
                     import ctypes
-                    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('com.russ3lhd.lalalai_voice_cleaner')
+                    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('com.russ3lhd.lalalai_watchfolder')
                 except Exception:
                     pass
 
@@ -1117,7 +1117,7 @@ class TextHandler(logging.Handler):
 def main():
     """Main application entry point"""
     root = tk.Tk()
-    app = LalalAIVoiceCleanerApp(root)
+    app = LalalAIWatchfolderApp(root)
     
     # Handle window closing
     root.protocol("WM_DELETE_WINDOW", app.on_closing)

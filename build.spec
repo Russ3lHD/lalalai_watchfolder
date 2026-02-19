@@ -1,7 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller spec file for Lalal AI Voice Cleaner
-Creates standalone .exe without console window
+PyInstaller spec file for Lalal AI lalalAI_Watchfolder
 """
 
 block_cipher = None
@@ -48,7 +47,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='LalalAI_VoiceCleaner',
+    name='lalalAI_Watchfolder',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -70,5 +69,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='LalalAI_VoiceCleaner',
+    name='lalalAI_Watchfolder',
 )
