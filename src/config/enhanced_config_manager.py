@@ -75,7 +75,7 @@ class ConfigSchema:
             },
             'stem': {
                 'type': str,
-                'default': 'voice',
+                'default': 'vocals',
                 'choices': ['vocals', 'voice', 'drum', 'bass', 'piano', 
                            'electric_guitar', 'acoustic_guitar', 'synthesizer', 
                            'strings', 'wind'],

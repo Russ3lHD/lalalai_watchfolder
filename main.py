@@ -13,9 +13,18 @@ from typing import Optional, Dict, Any
 import sv_ttk
 
 # Application version - update this with each release
-VERSION = "1.9.0"
+VERSION = "1.9.5"
 GITHUB_REPO = "Russ3lHD/lalalai_watchfolder"
 GITHUB_URL = f"https://github.com/{GITHUB_REPO}"
+
+
+def map_stem_for_ui(stem: str) -> str:
+    """Map stored stem values to friendly UI labels.
+
+    - Stored/legacy value `vocals` -> show `voice` in the UI for speech cleanup.
+    - All other stems are returned unchanged.
+    """
+    return 'voice' if stem == 'vocals' else stem
 
 from src.api import LalalAIClient
 from src.config import ConfigManager
@@ -438,7 +447,12 @@ class LalalAIVoiceCleanerApp:
             except Exception as e:
                 messagebox.showerror("Error", f"Cannot create output folder: {str(e)}")
                 return
-        
+
+        # Prevent the input and output folders being the same — avoids infinite re-processing
+        if os.path.abspath(input_folder) == os.path.abspath(output_folder):
+            messagebox.showerror("Error", "Input and output folders must be different — choose a separate output folder.")
+            return
+
         if self.is_watching:
             self.stop_watching()
         else:
@@ -603,9 +617,12 @@ class LalalAIVoiceCleanerApp:
         stem_label.grid(row=7, column=0, sticky=tk.W, pady=(10, 5))
         self.voice_cleanup_widgets.append(stem_label)
         
-        self.stem_var = tk.StringVar(value=self.config_manager.get('stem', 'voice'))
+        # Display-friendly stem value: map legacy/internal 'vocals' to 'voice' for the UI
+        stored_stem = self.config_manager.get('stem', 'vocals')
+        display_stem = map_stem_for_ui(stored_stem)
+        self.stem_var = tk.StringVar(value=display_stem)
         stem_combo = ttk.Combobox(settings_frame, textvariable=self.stem_var, state="readonly", width=20)
-        stem_combo['values'] = ('vocals', 'voice', 'drum', 'bass', 'piano', 'electric_guitar', 
+        stem_combo['values'] = ('voice', 'drum', 'bass', 'piano', 'electric_guitar',
                                'acoustic_guitar', 'synthesizer', 'strings', 'wind')
         stem_combo.grid(row=8, column=0, sticky=tk.W, pady=(0, 10))
         self.voice_cleanup_widgets.append(stem_combo)

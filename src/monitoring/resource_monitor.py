@@ -46,8 +46,10 @@ class TempFileManager:
     def create_temp_file(self, prefix: str = "lalalai_", suffix: str = ".tmp") -> Path:
         """Create a temporary file and track it"""
         try:
-            temp_file = Path(tempfile.mktemp(prefix=prefix, suffix=suffix, dir=str(self.base_temp_dir)))
-            temp_file.touch()
+            # Use mkstemp to atomically create and open the temp file (secure)
+            fd, path = tempfile.mkstemp(prefix=prefix, suffix=suffix, dir=str(self.base_temp_dir))
+            os.close(fd)  # close the low-level FD; caller can open the Path later
+            temp_file = Path(path)
             self.tracked_temps.append(temp_file)
             self.logger.debug(f"Created temp file: {temp_file}")
             

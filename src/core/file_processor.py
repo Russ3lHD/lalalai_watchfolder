@@ -229,6 +229,16 @@ class FileProcessor:
             
             if not success:
                 raise Exception("Failed to download processed file")
+
+            # If the output folder is (accidentally) the watched folder, mark the downloaded
+            # file as already-processed so the FolderWatcher won't queue it again.
+            try:
+                if self.app_instance and getattr(self.app_instance, 'folder_watcher', None) and getattr(self.app_instance.folder_watcher, 'event_handler', None):
+                    abs_downloaded = os.path.abspath(stem_output_path)
+                    self.app_instance.folder_watcher.event_handler.processed_files.add(abs_downloaded)
+            except Exception:
+                # non-fatal — continue processing
+                pass
             
             # Step 5: Move original file to processed folder
             processed_original_path = os.path.join(self.processed_folder, f"{datetime.now().strftime('%Y%m%d')}_{file_name}")

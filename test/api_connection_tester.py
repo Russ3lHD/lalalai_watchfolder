@@ -59,7 +59,7 @@ class ConnectionTestResult:
 class APIConnectionTester:
     """Tests Lalal AI API connectivity"""
     
-    BASE_URL = "https://www.lalal.ai/api"
+    BASE_URL = "https://www.lalal.ai/api/v1/"
     
     def __init__(self, license_key: str):
         self.license_key = license_key
@@ -70,7 +70,7 @@ class APIConnectionTester:
     def _setup_headers(self) -> Dict[str, str]:
         """Setup request headers"""
         return {
-            'Authorization': f'license {self.license_key}',
+            'X-License-Key': self.license_key,
             'User-Agent': 'LalalAIVoiceCleanerTester/1.0.0'
         }
     
@@ -90,14 +90,15 @@ class APIConnectionTester:
         
         try:
             response = self.session.head(
-                f"{self.BASE_URL}/info/",
+                f"{self.BASE_URL}voice_packs/list/",
                 timeout=timeout,
                 headers=self._setup_headers()
             )
             
             response_time = (time.time() - start_time) * 1000  # Convert to ms
             
-            if response.status_code == 200:
+            # Accept 200 or 405 for a HEAD against a POST-only endpoint
+            if response.status_code in [200, 405]:
                 result = ConnectionTestResult(
                     status=ConnectionStatus.SUCCESS,
                     message="Basic connectivity successful",
@@ -164,8 +165,9 @@ class APIConnectionTester:
         
         try:
             headers = self._setup_headers()
-            response = self.session.get(
-                f"{self.BASE_URL}/info/",
+            response = self.session.post(
+                f"{self.BASE_URL}voice_packs/list/",
+                json={},
                 timeout=timeout,
                 headers=headers
             )
@@ -234,7 +236,7 @@ class APIConnectionTester:
         try:
             headers = self._setup_headers()
             response = self.session.head(
-                f"{self.BASE_URL}/upload/",
+                f"{self.BASE_URL}upload/",
                 timeout=timeout,
                 headers=headers
             )
@@ -303,7 +305,7 @@ class APIConnectionTester:
         try:
             headers = self._setup_headers()
             response = self.session.head(
-                f"{self.BASE_URL}/separate/",
+                f"{self.BASE_URL}split/stem_separator/",
                 timeout=timeout,
                 headers=headers
             )

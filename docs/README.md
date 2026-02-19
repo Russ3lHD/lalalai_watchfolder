@@ -21,6 +21,8 @@ A comprehensive Python desktop application that integrates with the Lalal AI API
 - **Fine-tuning Controls**: Accent enhancement, pitch shifting, and dereverb for voice conversion
 
 ### 🔐 Security & Reliability
+- **API Authentication (v1)**: The application and client now use the `X-License-Key` header for Lalal AI API v1 requests — update any integrations that relied on the older `Authorization: license ...` header.
+- **Backward compatibility**: The included `src/api/api_client.py` implements a compatibility adapter for older response shapes so most higher-level code remains unchanged.
 - **Secure Authentication**: License key encryption using AES-128 (Fernet)
 - **Credential Protection**: All sensitive data encrypted and securely stored
 - **Comprehensive Logging**: Detailed activity logs with export capabilities

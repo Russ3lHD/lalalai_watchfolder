@@ -3,6 +3,7 @@ import time
 import logging
 import threading
 from pathlib import Path
+import re
 from typing import Set, Optional, Callable
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent, FileModifiedEvent
@@ -68,10 +69,22 @@ class AudioFileHandler(FileSystemEventHandler):
             return False
     
     def _is_supported_audio_file(self, file_path: str) -> bool:
-        """Check if file is a supported audio format"""
+        """Check if file is a supported audio format and ignore files created by this app.
+
+        This prevents re-processing outputs named like `*_clean.wav`, `*_clean_clean.wav`,
+        or `*_converted.wav` when the output folder is the watched folder.
+        """
         try:
             file_extension = Path(file_path).suffix.lower().lstrip('.')
-            return file_extension in self.supported_extensions
+            if file_extension not in self.supported_extensions:
+                return False
+
+            # Ignore files that look like processed outputs from this app
+            name = Path(file_path).stem
+            if re.search(r'(_clean)+$|_converted$', name):
+                return False
+
+            return True
         except Exception:
             return False
     
