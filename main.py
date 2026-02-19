@@ -5,10 +5,17 @@ import logging
 import os
 import json
 import sys
+import webbrowser
+import requests
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
 import sv_ttk
+
+# Application version - update this with each release
+VERSION = "1.9.0"
+GITHUB_REPO = "Russ3lHD/lalalai_watchfolder"
+GITHUB_URL = f"https://github.com/{GITHUB_REPO}"
 
 from src.api import LalalAIClient
 from src.config import ConfigManager
@@ -204,7 +211,16 @@ class LalalAIVoiceCleanerApp:
         ttk.Button(control_frame, text="Settings", command=self.show_settings).grid(row=0, column=1, padx=(0, 10))
         
         # Export logs button
-        ttk.Button(control_frame, text="Export Logs", command=self.export_logs).grid(row=0, column=2)
+        ttk.Button(control_frame, text="Export Logs", command=self.export_logs).grid(row=0, column=2, padx=(0, 10))
+        
+        # GitHub button (opens repository)
+        self.github_button = ttk.Button(
+            control_frame, 
+            text="🐙 GitHub", 
+            command=self.open_github,
+            width=10
+        )
+        self.github_button.grid(row=0, column=3)
     
     def create_status_section(self, parent):
         """Create status display section"""
@@ -260,6 +276,10 @@ class LalalAIVoiceCleanerApp:
         # Help menu
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="Check for Updates", command=self.check_for_updates_manual)
+        help_menu.add_separator()
+        help_menu.add_command(label="View on GitHub", command=self.open_github)
+        help_menu.add_separator()
         help_menu.add_command(label="About", command=self.show_about)
     
     def initialize_app(self):
@@ -294,6 +314,9 @@ class LalalAIVoiceCleanerApp:
                     self.log_message("Auto-authenticated with saved license key")
             
             self.log_message("Application initialized successfully")
+            
+            # Check for updates in background
+            self.schedule_update_check()
             
             # Auto-start watching if configured and prerequisites are met
             try:
@@ -791,9 +814,9 @@ class LalalAIVoiceCleanerApp:
     
     def show_about(self):
         """Show about dialog"""
-        about_text = """Lalal AI Watchfolder
+        about_text = f"""Lalal AI Watchfolder
 
-Version 1.8
+Version {VERSION}
 
 A desktop application for automatic voice cleanup using Lalal AI API.
 
@@ -806,6 +829,107 @@ Features:
 2025 Lalal AI Watchfolder"""
         
         messagebox.showinfo("About", about_text)
+    
+    def schedule_update_check(self):
+        """Schedule background update check after UI is ready"""
+        # Wait 5 seconds after startup to check for updates
+        self.root.after(5000, self._check_for_updates_async)
+    
+    def _check_for_updates_async(self):
+        """Run update check in background thread"""
+        def check():
+            try:
+                update_info = self._fetch_latest_release()
+                if update_info and update_info.get('has_update'):
+                    # Schedule UI update on main thread
+                    self.root.after(0, lambda: self._show_update_notification(update_info))
+            except Exception:
+                # Silently fail - don't bother user if update check fails
+                pass
+        
+        thread = threading.Thread(target=check, daemon=True)
+        thread.start()
+    
+    def _fetch_latest_release(self) -> Optional[Dict[str, Any]]:
+        """Fetch latest release info from GitHub API"""
+        try:
+            url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+            response = requests.get(url, timeout=5)
+            response.raise_for_status()
+            
+            data = response.json()
+            latest_version = data.get('tag_name', '').lstrip('v')
+            
+            if not latest_version:
+                return None
+            
+            # Simple version comparison (assumes semantic versioning)
+            has_update = self._version_is_newer(latest_version, VERSION)
+            
+            return {
+                'has_update': has_update,
+                'version': latest_version,
+                'current_version': VERSION,
+                'url': data.get('html_url', GITHUB_URL),
+                'name': data.get('name', f'v{latest_version}'),
+                'body': data.get('body', 'No release notes available.')
+            }
+        except Exception:
+            return None
+    
+    def _version_is_newer(self, latest: str, current: str) -> bool:
+        """Compare two version strings"""
+        try:
+            latest_parts = [int(x) for x in latest.split('.')]
+            current_parts = [int(x) for x in current.split('.')]
+            
+            # Pad shorter version with zeros
+            max_len = max(len(latest_parts), len(current_parts))
+            latest_parts.extend([0] * (max_len - len(latest_parts)))
+            current_parts.extend([0] * (max_len - len(current_parts)))
+            
+            return latest_parts > current_parts
+        except ValueError:
+            # If parsing fails, just compare strings
+            return latest > current
+    
+    def _show_update_notification(self, update_info: Dict[str, Any]):
+        """Show update notification dialog"""
+        result = messagebox.askyesno(
+            "Update Available",
+            f"A new version is available!\n\n"
+            f"Current version: {update_info['current_version']}\n"
+            f"Latest version: {update_info['version']}\n\n"
+            f"Would you like to open the GitHub page to download the update?"
+        )
+        if result:
+            webbrowser.open(update_info['url'])
+    
+    def check_for_updates_manual(self):
+        """Manually check for updates (called from menu)"""
+        self.log_message("Checking for updates...")
+        
+        def check():
+            update_info = self._fetch_latest_release()
+            if update_info is None:
+                self.root.after(0, lambda: messagebox.showerror(
+                    "Update Check Failed",
+                    "Could not check for updates.\nPlease try again later or visit GitHub manually."
+                ))
+            elif update_info.get('has_update'):
+                self.root.after(0, lambda: self._show_update_notification(update_info))
+            else:
+                self.root.after(0, lambda: messagebox.showinfo(
+                    "No Updates Available",
+                    f"You are running the latest version ({VERSION})."
+                ))
+        
+        thread = threading.Thread(target=check, daemon=True)
+        thread.start()
+    
+    def open_github(self):
+        """Open GitHub repository in default browser"""
+        webbrowser.open(GITHUB_URL)
     
     def log_message(self, message: str, level: str = "info"):
         """Log message to UI and file"""
