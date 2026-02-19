@@ -49,14 +49,37 @@ class LalalAIVoiceCleanerApp:
         self.root.configure(bg='#2b2b2b')  # Dark background color
         self.root.resizable(True, True)
         
-        # Set window icon if available (optional - you can add an icon file)
+        # Set window icon and AppUserModelID so Windows taskbar shows the correct icon
         try:
-            # You can add an icon by uncommenting and providing a valid icon path
-            # self.root.iconbitmap('assets/icon.ico')  
-            pass
-        except:
-            pass
-        
+            # Ensure Windows uses the bundled app icon for taskbar grouping
+            if sys.platform.startswith('win'):
+                try:
+                    import ctypes
+                    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('com.russ3lhd.lalalai_voice_cleaner')
+                except Exception:
+                    pass
+
+            # Resolve resource path for both source and PyInstaller bundle
+            if getattr(sys, 'frozen', False):
+                base_path = sys._MEIPASS
+            else:
+                base_path = os.path.abspath(os.path.dirname(__file__))
+
+            icon_path = os.path.join(base_path, 'Watchfolder-icon.ico')
+            if os.path.exists(icon_path):
+                try:
+                    # .ico required on Windows for iconbitmap
+                    self.root.iconbitmap(icon_path)
+                except Exception:
+                    # ignore failures setting the window icon
+                    pass
+        except Exception as e:
+            # don't break startup if icon setting fails
+            try:
+                self.logger.debug(f"Failed to set app icon: {e}")
+            except Exception:
+                pass
+
         # Configure window border and styling hints for better dark theme integration
         self.root.attributes('-alpha', 1.0)  # Full opacity
         self.root.attributes('-topmost', False)  # Normal window stacking
