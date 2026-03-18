@@ -205,37 +205,70 @@ class FileProcessor:
             if not processing_result:
                 raise Exception("Processing did not complete successfully")
             
-            # Step 4: Download processed files
+            # Step 4: Download processed files based on user's track selection
             # The API returns both stem_track (extracted voice/instrument) and back_track (everything else)
             stem_track_url = processing_result.get('stem_track')
-            
-            if not stem_track_url:
-                raise Exception("No download URL received for processed file")
-            
-            # Download the stem track (the extracted clean voice)
+            back_track_url = processing_result.get('back_track')
+
+            # Get user's track selection from config (default to stem_track only)
+            download_stem_track = self.app_instance.config_manager.get('download_stem_track', True)
+            download_back_track = self.app_instance.config_manager.get('download_back_track', False)
+
+            # Ensure at least one track is selected
+            if not download_stem_track and not download_back_track:
+                self.logger.warning("No tracks selected for download, defaulting to stem_track")
+                download_stem_track = True
+
             file_base, file_ext = os.path.splitext(file_name)
-            if processing_mode == 'voice_cleanup':
-                stem_output_name = f"{file_base}_clean{file_ext}"
-            else:
-                stem_output_name = f"{file_base}_converted{file_ext}"
-            
-            stem_output_path = os.path.join(self.output_folder, stem_output_name)
-            
-            self.logger.info(f"Downloading clean voice: {stem_output_name}")
-            if self.app_instance:
-                self.app_instance.log_message(f"Downloading clean voice...")
-            
-            success = self.api_client.download_processed_file(stem_track_url, stem_output_path)
-            
-            if not success:
-                raise Exception("Failed to download processed file")
+            downloaded_files = []
+
+            # Download stem track if selected
+            if download_stem_track and stem_track_url:
+                if processing_mode == 'voice_cleanup':
+                    stem_output_name = f"{file_base}_clean{file_ext}"
+                else:
+                    stem_output_name = f"{file_base}_converted{file_ext}"
+
+                stem_output_path = os.path.join(self.output_folder, stem_output_name)
+
+                self.logger.info(f"Downloading stem track: {stem_output_name}")
+                if self.app_instance:
+                    self.app_instance.log_message(f"Downloading stem track...")
+
+                success = self.api_client.download_processed_file(stem_track_url, stem_output_path)
+
+                if not success:
+                    raise Exception("Failed to download stem track")
+
+                downloaded_files.append(stem_output_path)
+            elif download_stem_track and not stem_track_url:
+                raise Exception("No download URL received for stem track")
+
+            # Download back track if selected
+            if download_back_track and back_track_url:
+                back_output_name = f"{file_base}_back{file_ext}"
+                back_output_path = os.path.join(self.output_folder, back_output_name)
+
+                self.logger.info(f"Downloading back track: {back_output_name}")
+                if self.app_instance:
+                    self.app_instance.log_message(f"Downloading back track...")
+
+                success = self.api_client.download_processed_file(back_track_url, back_output_path)
+
+                if not success:
+                    raise Exception("Failed to download back track")
+
+                downloaded_files.append(back_output_path)
+            elif download_back_track and not back_track_url:
+                self.logger.warning("Back track was selected but no URL was returned")
 
             # If the output folder is (accidentally) the watched folder, mark the downloaded
-            # file as already-processed so the FolderWatcher won't queue it again.
+            # files as already-processed so the FolderWatcher won't queue them again.
             try:
                 if self.app_instance and getattr(self.app_instance, 'folder_watcher', None) and getattr(self.app_instance.folder_watcher, 'event_handler', None):
-                    abs_downloaded = os.path.abspath(stem_output_path)
-                    self.app_instance.folder_watcher.event_handler.processed_files.add(abs_downloaded)
+                    for downloaded_path in downloaded_files:
+                        abs_downloaded = os.path.abspath(downloaded_path)
+                        self.app_instance.folder_watcher.event_handler.processed_files.add(abs_downloaded)
             except Exception:
                 # non-fatal — continue processing
                 pass

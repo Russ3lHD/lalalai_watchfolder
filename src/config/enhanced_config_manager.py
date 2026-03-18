@@ -94,6 +94,16 @@ class ConfigSchema:
                 'max_value': 2,
                 'description': 'Post-processing filter intensity'
             },
+            'download_stem_track': {
+                'type': bool,
+                'default': True,
+                'description': 'Download the extracted stem track'
+            },
+            'download_back_track': {
+                'type': bool,
+                'default': False,
+                'description': 'Download the back track (remaining audio)'
+            },
             'processing_mode': {
                 'type': str,
                 'default': 'voice_cleanup',

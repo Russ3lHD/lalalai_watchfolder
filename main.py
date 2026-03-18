@@ -678,139 +678,158 @@ class LalalAIWatchfolderApp:
         filter_radio3.pack(side=tk.LEFT)
         
         self.voice_cleanup_widgets.extend([filter_frame, filter_radio1, filter_radio2, filter_radio3])
-        
+
+        # Download Tracks Selection
+        download_tracks_label = ttk.Label(settings_frame, text="Download Tracks:", font=("Arial", 10, "bold"))
+        download_tracks_label.grid(row=13, column=0, sticky=tk.W, pady=(15, 5))
+        self.voice_cleanup_widgets.append(download_tracks_label)
+
+        # Stem track checkbox (the extracted audio)
+        self.download_stem_track_var = tk.BooleanVar(value=self.config_manager.get('download_stem_track', True))
+        stem_track_check = ttk.Checkbutton(settings_frame, text="Download Stem Track (extracted audio)",
+                       variable=self.download_stem_track_var)
+        stem_track_check.grid(row=14, column=0, sticky=tk.W, pady=2)
+        self.voice_cleanup_widgets.append(stem_track_check)
+
+        # Back track checkbox (everything else)
+        self.download_back_track_var = tk.BooleanVar(value=self.config_manager.get('download_back_track', False))
+        back_track_check = ttk.Checkbutton(settings_frame, text="Download Back Track (remaining audio)",
+                       variable=self.download_back_track_var)
+        back_track_check.grid(row=15, column=0, sticky=tk.W, pady=2)
+        self.voice_cleanup_widgets.append(back_track_check)
+
         # Voice Converter Settings
         voice_converter_label = ttk.Label(settings_frame, text="Voice Converter Options", font=("Arial", 10, "bold"))
-        voice_converter_label.grid(row=13, column=0, sticky=tk.W, pady=(20, 10))
+        voice_converter_label.grid(row=16, column=0, sticky=tk.W, pady=(20, 10))
         self.voice_converter_widgets.append(voice_converter_label)
-        
+
         # Voice Pack Selection
         voice_pack_label = ttk.Label(settings_frame, text="Voice Pack:")
-        voice_pack_label.grid(row=14, column=0, sticky=tk.W, pady=(10, 5))
+        voice_pack_label.grid(row=17, column=0, sticky=tk.W, pady=(10, 5))
         self.voice_converter_widgets.append(voice_pack_label)
-        
+
         self.voice_pack_var = tk.StringVar(value=self.config_manager.get('voice_pack_id', 'ALEX_KAYE'))
         voice_pack_combo = ttk.Combobox(settings_frame, textvariable=self.voice_pack_var, state="readonly", width=20)
         voice_pack_combo['values'] = ('ALEX_KAYE', 'JENNIFER', 'DAVID', 'SARAH', 'MICHAEL')  # Common voice packs
-        voice_pack_combo.grid(row=15, column=0, sticky=tk.W, pady=(0, 10))
+        voice_pack_combo.grid(row=18, column=0, sticky=tk.W, pady=(0, 10))
         self.voice_converter_widgets.append(voice_pack_combo)
-        
+
         # Accent Enhance
         accent_label = ttk.Label(settings_frame, text="Accent Enhance:")
-        accent_label.grid(row=16, column=0, sticky=tk.W, pady=(10, 5))
+        accent_label.grid(row=19, column=0, sticky=tk.W, pady=(10, 5))
         self.voice_converter_widgets.append(accent_label)
-        
+
         self.accent_enhance_var = tk.DoubleVar(value=self.config_manager.get('accent_enhance', 1.0))
         accent_scale = ttk.Scale(settings_frame, from_=0.5, to=2.0, variable=self.accent_enhance_var, orient=tk.HORIZONTAL)
-        accent_scale.grid(row=17, column=0, sticky=tk.W+tk.E, pady=(0, 5))
+        accent_scale.grid(row=20, column=0, sticky=tk.W+tk.E, pady=(0, 5))
         self.voice_converter_widgets.append(accent_scale)
-        
+
         accent_value_label = ttk.Label(settings_frame, textvariable=self.accent_enhance_var)
-        accent_value_label.grid(row=18, column=0, sticky=tk.W, pady=(0, 10))
+        accent_value_label.grid(row=21, column=0, sticky=tk.W, pady=(0, 10))
         self.voice_converter_widgets.append(accent_value_label)
-        
+
         # Pitch Shifting
         self.pitch_shifting_var = tk.BooleanVar(value=self.config_manager.get('pitch_shifting', True))
-        pitch_check = ttk.Checkbutton(settings_frame, text="Pitch Shifting", 
+        pitch_check = ttk.Checkbutton(settings_frame, text="Pitch Shifting",
                        variable=self.pitch_shifting_var)
-        pitch_check.grid(row=19, column=0, sticky=tk.W, pady=2)
+        pitch_check.grid(row=22, column=0, sticky=tk.W, pady=2)
         self.voice_converter_widgets.append(pitch_check)
-        
+
         # Dereverb for Voice Conversion
         self.dereverb_enabled_var = tk.BooleanVar(value=self.config_manager.get('dereverb_enabled', False))
-        dereverb_conv_check = ttk.Checkbutton(settings_frame, text="Dereverb (Voice Conversion)", 
+        dereverb_conv_check = ttk.Checkbutton(settings_frame, text="Dereverb (Voice Conversion)",
                        variable=self.dereverb_enabled_var)
-        dereverb_conv_check.grid(row=20, column=0, sticky=tk.W, pady=2)
+        dereverb_conv_check.grid(row=23, column=0, sticky=tk.W, pady=2)
         self.voice_converter_widgets.append(dereverb_conv_check)
-        
+
         # General Settings
         general_label = ttk.Label(settings_frame, text="General Settings", font=("Arial", 10, "bold"))
-        general_label.grid(row=21, column=0, sticky=tk.W, pady=(20, 10))
+        general_label.grid(row=24, column=0, sticky=tk.W, pady=(20, 10))
         self.general_widgets.append(general_label)
-        
+
         # Auto-start option
         self.auto_start_var = tk.BooleanVar(value=self.config_manager.get('auto_start', False))
-        auto_start_check = ttk.Checkbutton(settings_frame, text="Auto-start watching on launch", 
+        auto_start_check = ttk.Checkbutton(settings_frame, text="Auto-start watching on launch",
                        variable=self.auto_start_var)
-        auto_start_check.grid(row=22, column=0, sticky=tk.W, pady=2)
+        auto_start_check.grid(row=25, column=0, sticky=tk.W, pady=2)
         self.general_widgets.append(auto_start_check)
-        
+
         # Processed folder option
         self.create_processed_folder_var = tk.BooleanVar(value=self.config_manager.get('create_processed_folder', True))
-        processed_folder_check = ttk.Checkbutton(settings_frame, text="Create processed subfolder", 
+        processed_folder_check = ttk.Checkbutton(settings_frame, text="Create processed subfolder",
                        variable=self.create_processed_folder_var)
-        processed_folder_check.grid(row=23, column=0, sticky=tk.W, pady=2)
+        processed_folder_check.grid(row=26, column=0, sticky=tk.W, pady=2)
         self.general_widgets.append(processed_folder_check)
-        
+
         # Performance Settings
         performance_label = ttk.Label(settings_frame, text="Performance Settings", font=("Arial", 10, "bold"))
-        performance_label.grid(row=24, column=0, sticky=tk.W, pady=(20, 10))
+        performance_label.grid(row=27, column=0, sticky=tk.W, pady=(20, 10))
         self.general_widgets.append(performance_label)
         
         # Max Queue Size
         max_queue_label = ttk.Label(settings_frame, text="Max Queue Size:")
-        max_queue_label.grid(row=25, column=0, sticky=tk.W, pady=(10, 5))
+        max_queue_label.grid(row=28, column=0, sticky=tk.W, pady=(10, 5))
         self.general_widgets.append(max_queue_label)
-        
+
         self.max_queue_size_var = tk.IntVar(value=self.config_manager.get('max_queue_size', 100))
         max_queue_frame = ttk.Frame(settings_frame)
-        max_queue_frame.grid(row=26, column=0, sticky=tk.W, pady=(0, 10))
+        max_queue_frame.grid(row=29, column=0, sticky=tk.W, pady=(0, 10))
         max_queue_spin = ttk.Spinbox(max_queue_frame, from_=1, to=1000, textvariable=self.max_queue_size_var, width=10)
         max_queue_spin.pack(side=tk.LEFT)
         max_queue_range_label = ttk.Label(max_queue_frame, text="(1-1000)", font=("Arial", 8))
         max_queue_range_label.pack(side=tk.LEFT, padx=(5, 0))
-        
+
         self.general_widgets.extend([max_queue_frame, max_queue_spin, max_queue_range_label])
-        
+
         # Retry Attempts
         retry_label = ttk.Label(settings_frame, text="Retry Attempts:")
-        retry_label.grid(row=27, column=0, sticky=tk.W, pady=(10, 5))
+        retry_label.grid(row=30, column=0, sticky=tk.W, pady=(10, 5))
         self.general_widgets.append(retry_label)
-        
+
         self.retry_attempts_var = tk.IntVar(value=self.config_manager.get('retry_attempts', 3))
         retry_frame = ttk.Frame(settings_frame)
-        retry_frame.grid(row=28, column=0, sticky=tk.W, pady=(0, 10))
+        retry_frame.grid(row=31, column=0, sticky=tk.W, pady=(0, 10))
         retry_spin = ttk.Spinbox(retry_frame, from_=1, to=10, textvariable=self.retry_attempts_var, width=10)
         retry_spin.pack(side=tk.LEFT)
         retry_range_label = ttk.Label(retry_frame, text="(1-10)", font=("Arial", 8))
         retry_range_label.pack(side=tk.LEFT, padx=(5, 0))
-        
+
         self.general_widgets.extend([retry_frame, retry_spin, retry_range_label])
-        
+
         # Timeout Seconds
         timeout_label = ttk.Label(settings_frame, text="Timeout (seconds):")
-        timeout_label.grid(row=29, column=0, sticky=tk.W, pady=(10, 5))
+        timeout_label.grid(row=32, column=0, sticky=tk.W, pady=(10, 5))
         self.general_widgets.append(timeout_label)
-        
+
         self.timeout_seconds_var = tk.IntVar(value=self.config_manager.get('timeout_seconds', 300))
         timeout_frame = ttk.Frame(settings_frame)
-        timeout_frame.grid(row=30, column=0, sticky=tk.W, pady=(0, 10))
+        timeout_frame.grid(row=33, column=0, sticky=tk.W, pady=(0, 10))
         timeout_spin = ttk.Spinbox(timeout_frame, from_=30, to=3600, increment=30, textvariable=self.timeout_seconds_var, width=10)
         timeout_spin.pack(side=tk.LEFT)
         timeout_range_label = ttk.Label(timeout_frame, text="(30-3600)", font=("Arial", 8))
         timeout_range_label.pack(side=tk.LEFT, padx=(5, 0))
-        
+
         self.general_widgets.extend([timeout_frame, timeout_spin, timeout_range_label])
-        
+
         # Health Check Interval
         health_label = ttk.Label(settings_frame, text="Health Check Interval:")
-        health_label.grid(row=31, column=0, sticky=tk.W, pady=(10, 5))
+        health_label.grid(row=34, column=0, sticky=tk.W, pady=(10, 5))
         self.general_widgets.append(health_label)
-        
+
         self.health_check_interval_var = tk.IntVar(value=self.config_manager.get('health_check_interval', 30))
         health_frame = ttk.Frame(settings_frame)
-        health_frame.grid(row=32, column=0, sticky=tk.W, pady=(0, 10))
+        health_frame.grid(row=35, column=0, sticky=tk.W, pady=(0, 10))
         health_spin = ttk.Spinbox(health_frame, from_=5, to=300, increment=5, textvariable=self.health_check_interval_var, width=10)
         health_spin.pack(side=tk.LEFT)
         health_range_label = ttk.Label(health_frame, text="seconds (5-300)", font=("Arial", 8))
         health_range_label.pack(side=tk.LEFT, padx=(5, 0))
-        
+
         self.general_widgets.extend([health_frame, health_spin, health_range_label])
-        
+
         # Save button
-        save_button = ttk.Button(settings_frame, text="Save Settings", 
+        save_button = ttk.Button(settings_frame, text="Save Settings",
                   command=lambda: self.save_settings(settings_window))
-        save_button.grid(row=33, column=0, pady=20)
+        save_button.grid(row=36, column=0, pady=20)
         self.general_widgets.append(save_button)
         
         # Initialize mode-specific visibility
@@ -859,6 +878,8 @@ class LalalAIWatchfolderApp:
             'stem': self.stem_var.get(),
             'splitter': self.splitter_var.get(),
             'filter': self.filter_var.get(),
+            'download_stem_track': self.download_stem_track_var.get(),
+            'download_back_track': self.download_back_track_var.get(),
             'processing_mode': self.processing_mode_var.get(),
             'voice_pack_id': self.voice_pack_var.get(),
             'accent_enhance': self.accent_enhance_var.get(),
@@ -906,7 +927,7 @@ Features:
 • Secure credential storage
 • Comprehensive logging
 
-2025 Lalal AI Watchfolder"""
+2026 Lalal AI Watchfolder"""
         
         messagebox.showinfo("About", about_text)
     
