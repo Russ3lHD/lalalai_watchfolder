@@ -349,7 +349,7 @@ class LalalAIClient:
 
     def convert_voice(self, file_id: str, **options) -> Optional[str]:
         """Convert voice using Lalal AI voice conversion API
-        
+
         Returns file_id to use with check_voice_conversion_status
         """
         try:
@@ -384,9 +384,111 @@ class LalalAIClient:
                 raise Exception(f"Conversion failed: unexpected response {result}")
             else:
                 raise Exception(f"Conversion request failed with status {response.status_code}: {response.text}")
-                
+
         except Exception as e:
             self.logger.error(f"Voice conversion failed: {str(e)}")
             raise
+
+    def process_multistem(self, file_id: str, stem_list: list, **options) -> Optional[str]:
+        """Split audio into multiple stems using the multistem endpoint
+
+        This extracts multiple stems at once and provides a 'no_multistem' back track
+        containing everything that wasn't extracted.
+
+        Args:
+            file_id: The uploaded file's source ID
+            stem_list: List of stems to extract (e.g., ['vocals'], ['vocals', 'drum'])
+            **options: Additional options like splitter, dereverb_enabled, extraction_level
+
+        Returns:
+            Task ID to check status
+        """
+        try:
+            # Validate stem_list
+            allowed_stems = {'vocals', 'drum', 'piano', 'bass', 'electric_guitar', 'acoustic_guitar'}
+            invalid_stems = set(stem_list) - allowed_stems
+            if invalid_stems:
+                raise ValueError(f"Invalid stems: {invalid_stems}. Allowed: {allowed_stems}")
+
+            if len(stem_list) < 1 or len(stem_list) > 6:
+                raise ValueError(f"stem_list must contain 1-6 stems, got {len(stem_list)}")
+
+            payload = {
+                'source_id': file_id,
+                'presets': {
+                    'stem_list': stem_list,
+                    'splitter': options.get('splitter', 'perseus'),
+                    'dereverb_enabled': options.get('dereverb', False),
+                    'extraction_level': options.get('extraction_level', 'deep_extraction')
+                }
+            }
+
+            self.logger.info(f"Starting multistem split for file ID: {file_id}")
+            self.logger.info(f"Multistem params: stems={stem_list}, splitter={payload['presets']['splitter']}")
+
+            response = self.session.post(
+                f"{self.BASE_URL}split/multistem/",
+                json=payload,
+                timeout=60
+            )
+
+            if response.status_code in (200, 201):
+                result = response.json() or {}
+                self.logger.info(f"Multistem API response: {result}")
+                task_id = result.get('task_id') or result.get('id')
+                if task_id:
+                    self.logger.info(f"Multistem task started. Task ID: {task_id}")
+                    return task_id
+                raise Exception(f"Multistem failed: unexpected response {result}")
+            else:
+                raise Exception(f"Multistem request failed with status {response.status_code}: {response.text}")
+
+        except Exception as e:
+            self.logger.error(f"Multistem processing failed: {str(e)}")
+            raise
+
+    def get_minutes_left(self) -> Optional[float]:
+        """Get remaining processing minutes from API"""
+        try:
+            response = self.session.post(
+                f"{self.BASE_URL}limits/minutes_left/",
+                json={},
+                timeout=30
+            )
+
+            if response.status_code == 200:
+                result = response.json() or {}
+                return result.get('minutes_left')
+            return None
+
+        except Exception as e:
+            self.logger.error(f"Failed to get minutes left: {str(e)}")
+            return None
+
+    def cancel_task(self, task_ids: list) -> bool:
+        """Cancel one or more processing tasks"""
+        try:
+            response = self.session.post(
+                f"{self.BASE_URL}cancel/",
+                json={'task_ids': task_ids},
+                timeout=30
+            )
+            return response.status_code == 200
+        except Exception as e:
+            self.logger.error(f"Failed to cancel tasks: {str(e)}")
+            return False
+
+    def cancel_all_tasks(self) -> bool:
+        """Cancel all user tasks in progress"""
+        try:
+            response = self.session.post(
+                f"{self.BASE_URL}cancel/all/",
+                json={},
+                timeout=30
+            )
+            return response.status_code == 200
+        except Exception as e:
+            self.logger.error(f"Failed to cancel all tasks: {str(e)}")
+            return False
 
 

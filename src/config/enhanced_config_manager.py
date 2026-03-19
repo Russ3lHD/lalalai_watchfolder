@@ -160,6 +160,28 @@ class ConfigSchema:
                 'min_value': 5,
                 'max_value': 300,
                 'description': 'Health check interval in seconds'
+            },
+            # Multistem configuration
+            'use_multistem': {
+                'type': bool,
+                'default': False,
+                'description': 'Use multistem endpoint for extraction'
+            },
+            'multistem_list': {
+                'type': list,
+                'default': ['vocals'],
+                'description': 'List of stems to extract via multistem'
+            },
+            'download_no_multistem': {
+                'type': bool,
+                'default': True,
+                'description': 'Download the no_multistem back track (background without extracted stems)'
+            },
+            'extraction_level': {
+                'type': str,
+                'default': 'deep_extraction',
+                'choices': ['deep_extraction', 'clear_cut'],
+                'description': 'Extraction level: deep_extraction captures more detail, clear_cut minimizes bleeding'
             }
         }
     

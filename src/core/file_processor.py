@@ -140,8 +140,34 @@ class FileProcessor:
             
             # Step 2: Process based on mode
             processing_mode = self.app_instance.config_manager.get('processing_mode', 'voice_cleanup')
-            
-            if processing_mode == 'voice_cleanup':
+
+            # Check if multistem mode is enabled for voice_cleanup
+            use_multistem = self.app_instance.config_manager.get('use_multistem', False)
+
+            if processing_mode == 'voice_cleanup' and use_multistem:
+                # Multistem processing for PostProduction
+                self.logger.info(f"Starting multistem split for: {file_name}")
+                if self.app_instance:
+                    self.app_instance.log_message(f"Starting multistem extraction")
+
+                # Get multistem settings
+                multistem_list = self.app_instance.config_manager.get('multistem_list', ['vocals'])
+                splitter = self.app_instance.config_manager.get('splitter', 'perseus')
+                dereverb = self.app_instance.config_manager.get('dereverb', True)
+                extraction_level = self.app_instance.config_manager.get('extraction_level', 'deep_extraction')
+
+                job_id = self.api_client.process_multistem(
+                    file_id,
+                    stem_list=multistem_list,
+                    splitter=splitter,
+                    dereverb=dereverb,
+                    extraction_level=extraction_level
+                )
+
+                if not job_id:
+                    raise Exception("Multistem processing failed")
+
+            elif processing_mode == 'voice_cleanup':
                 self.logger.info(f"Starting voice cleanup for: {file_name}")
                 if self.app_instance:
                     self.app_instance.log_message(f"Starting voice cleanup")
@@ -201,66 +227,110 @@ class FileProcessor:
                     self.app_instance.log_message(f"Processing voice conversion...")
             
             processing_result = self._wait_for_processing_completion(job_id)
-            
+
             if not processing_result:
                 raise Exception("Processing did not complete successfully")
-            
-            # Step 4: Download processed files based on user's track selection
-            # The API returns both stem_track (extracted voice/instrument) and back_track (everything else)
-            stem_track_url = processing_result.get('stem_track')
-            back_track_url = processing_result.get('back_track')
 
-            # Get user's track selection from config (default to stem_track only)
-            download_stem_track = self.app_instance.config_manager.get('download_stem_track', True)
-            download_back_track = self.app_instance.config_manager.get('download_back_track', False)
-
-            # Ensure at least one track is selected
-            if not download_stem_track and not download_back_track:
-                self.logger.warning("No tracks selected for download, defaulting to stem_track")
-                download_stem_track = True
-
+            # Step 4: Download processed files
             file_base, file_ext = os.path.splitext(file_name)
             downloaded_files = []
 
-            # Download stem track if selected
-            if download_stem_track and stem_track_url:
-                if processing_mode == 'voice_cleanup':
-                    stem_output_name = f"{file_base}_clean{file_ext}"
-                else:
-                    stem_output_name = f"{file_base}_converted{file_ext}"
+            # Check if we have multistem tracks (list of tracks)
+            tracks = processing_result.get('tracks', [])
 
-                stem_output_path = os.path.join(self.output_folder, stem_output_name)
+            if tracks and use_multistem and processing_mode == 'voice_cleanup':
+                # Multistem mode: download each stem and the no_multistem back track
+                download_no_multistem = self.app_instance.config_manager.get('download_no_multistem', True)
+                multistem_list = self.app_instance.config_manager.get('multistem_list', ['vocals'])
 
-                self.logger.info(f"Downloading stem track: {stem_output_name}")
-                if self.app_instance:
-                    self.app_instance.log_message(f"Downloading stem track...")
+                for track in tracks:
+                    track_type = track.get('type', '')
+                    track_label = track.get('label', '')
+                    track_url = track.get('url', '')
 
-                success = self.api_client.download_processed_file(stem_track_url, stem_output_path)
+                    if not track_url:
+                        continue
 
-                if not success:
-                    raise Exception("Failed to download stem track")
+                    # Determine output filename based on track type
+                    if track_type == 'stem':
+                        # Individual stem (vocals, drum, etc.)
+                        stem_output_name = f"{file_base}_{track_label}{file_ext}"
+                        self.logger.info(f"Downloading stem track '{track_label}': {stem_output_name}")
+                        if self.app_instance:
+                            self.app_instance.log_message(f"Downloading {track_label} track...")
+                    elif track_type == 'back' and track_label == 'no_multistem':
+                        # Background without all extracted stems
+                        if not download_no_multistem:
+                            continue
+                        stem_output_name = f"{file_base}_back{file_ext}"
+                        self.logger.info(f"Downloading no_multistem track: {stem_output_name}")
+                        if self.app_instance:
+                            self.app_instance.log_message("Downloading background track...")
+                    else:
+                        # Other back tracks (skip unless specifically requested)
+                        continue
 
-                downloaded_files.append(stem_output_path)
-            elif download_stem_track and not stem_track_url:
-                raise Exception("No download URL received for stem track")
+                    output_path = os.path.join(self.output_folder, stem_output_name)
+                    success = self.api_client.download_processed_file(track_url, output_path)
 
-            # Download back track if selected
-            if download_back_track and back_track_url:
-                back_output_name = f"{file_base}_back{file_ext}"
-                back_output_path = os.path.join(self.output_folder, back_output_name)
+                    if not success:
+                        raise Exception(f"Failed to download track: {track_label}")
 
-                self.logger.info(f"Downloading back track: {back_output_name}")
-                if self.app_instance:
-                    self.app_instance.log_message(f"Downloading back track...")
+                    downloaded_files.append(output_path)
 
-                success = self.api_client.download_processed_file(back_track_url, back_output_path)
+            else:
+                # Legacy mode: single stem_track and back_track
+                stem_track_url = processing_result.get('stem_track')
+                back_track_url = processing_result.get('back_track')
 
-                if not success:
-                    raise Exception("Failed to download back track")
+                # Get user's track selection from config (default to stem_track only)
+                download_stem_track = self.app_instance.config_manager.get('download_stem_track', True)
+                download_back_track = self.app_instance.config_manager.get('download_back_track', False)
 
-                downloaded_files.append(back_output_path)
-            elif download_back_track and not back_track_url:
-                self.logger.warning("Back track was selected but no URL was returned")
+                # Ensure at least one track is selected
+                if not download_stem_track and not download_back_track:
+                    self.logger.warning("No tracks selected for download, defaulting to stem_track")
+                    download_stem_track = True
+
+                # Download stem track if selected
+                if download_stem_track and stem_track_url:
+                    if processing_mode == 'voice_cleanup':
+                        stem_output_name = f"{file_base}_clean{file_ext}"
+                    else:
+                        stem_output_name = f"{file_base}_converted{file_ext}"
+
+                    stem_output_path = os.path.join(self.output_folder, stem_output_name)
+
+                    self.logger.info(f"Downloading stem track: {stem_output_name}")
+                    if self.app_instance:
+                        self.app_instance.log_message("Downloading stem track...")
+
+                    success = self.api_client.download_processed_file(stem_track_url, stem_output_path)
+
+                    if not success:
+                        raise Exception("Failed to download stem track")
+
+                    downloaded_files.append(stem_output_path)
+                elif download_stem_track and not stem_track_url:
+                    raise Exception("No download URL received for stem track")
+
+                # Download back track if selected
+                if download_back_track and back_track_url:
+                    back_output_name = f"{file_base}_back{file_ext}"
+                    back_output_path = os.path.join(self.output_folder, back_output_name)
+
+                    self.logger.info(f"Downloading back track: {back_output_name}")
+                    if self.app_instance:
+                        self.app_instance.log_message("Downloading back track...")
+
+                    success = self.api_client.download_processed_file(back_track_url, back_output_path)
+
+                    if not success:
+                        raise Exception("Failed to download back track")
+
+                    downloaded_files.append(back_output_path)
+                elif download_back_track and not back_track_url:
+                    self.logger.warning("Back track was selected but no URL was returned")
 
             # If the output folder is (accidentally) the watched folder, mark the downloaded
             # files as already-processed so the FolderWatcher won't queue them again.
