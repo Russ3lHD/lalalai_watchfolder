@@ -13,7 +13,7 @@ from typing import Optional, Dict, Any
 import sv_ttk
 
 # Application version - update this with each release
-VERSION = "1.9.6"
+VERSION = "1.9.7"
 GITHUB_REPO = "Russ3lHD/lalalai_watchfolder"
 GITHUB_URL = f"https://github.com/{GITHUB_REPO}"
 
