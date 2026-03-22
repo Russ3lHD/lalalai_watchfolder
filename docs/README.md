@@ -171,11 +171,11 @@ lalalai_watchfolder/
 
 ## Dependencies
 
-- `requests==2.31.0` - HTTP library for API communication
-- `cryptography==41.0.7` - Encryption for secure credential storage
+- `requests==2.32.5` - HTTP library for API communication
+- `cryptography==46.0.5` - Encryption for secure credential storage
 - `watchdog==3.0.0` - File system monitoring
 - `tkinter-tooltip==2.1.0` - Enhanced GUI tooltips
-- `pillow==10.1.0` - Image processing for GUI
+- `pillow==12.1.1` - Image processing for GUI
 - `python-dateutil==2.8.2` - Date/time utilities
 - `sv-ttk==2.6.1` - Sun Valley TTK theme for modern GUI appearance
 

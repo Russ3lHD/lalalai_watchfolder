@@ -13,20 +13,26 @@ from pathlib import Path
 def install_dependencies():
     """Install required Python packages"""
     print("Installing dependencies...")
-    
-    # Core dependencies that work reliably
-    core_packages = [
-        'requests>=2.31.0',
-        'cryptography>=41.0.0',
+
+    requirements_path = Path(__file__).resolve().parent / 'requirements.txt'
+    fallback_packages = [
+        'requests>=2.32.5',
+        'cryptography>=46.0.5',
         'watchdog>=3.0.0',
         'python-dateutil>=2.8.0'
     ]
-    
+
     try:
-        # Install core packages
-        for package in core_packages:
-            print(f"Installing {package}...")
-            subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
+        if requirements_path.exists():
+            print(f"Installing from {requirements_path.name}...")
+            subprocess.check_call([
+                sys.executable, '-m', 'pip', 'install', '-r', str(requirements_path)
+            ])
+        else:
+            print("requirements.txt not found, using fallback package list...")
+            for package in fallback_packages:
+                print(f"Installing {package}...")
+                subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
         
         print("✓ Dependencies installed successfully")
         return True

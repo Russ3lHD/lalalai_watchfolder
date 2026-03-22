@@ -5,3 +5,4 @@ __pycache__
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
+release_build.py

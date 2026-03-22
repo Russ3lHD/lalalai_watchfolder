@@ -60,14 +60,3 @@ exe = EXE(
     entitlements_file=None,
     icon='Watchfolder-icon.ico',  # Application icon
 )
-
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name='lalalAI_Watchfolder',
-)
